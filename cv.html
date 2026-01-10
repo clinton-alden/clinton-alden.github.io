@@ -1,10 +1,108 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>My CV</title>
-</head>
-<body>
-    <h1>My Curriculum Vitae</h1>
-    <p>Include your CV details here.</p>
-</body>
-</html>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Clinton Alden — CV</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="assets/styles.css" />
+    </head>
+    <body>
+        <header class="header">
+            <div class="container nav">
+                <div class="logo">CA</div>
+                <nav class="nav-links">
+                    <a href="index.html#about">About</a>
+                    <a href="index.html#experience">Experience</a>
+                    <a href="index.html#projects">Projects</a>
+                    <a href="index.html#skills">Skills</a>
+                    <a href="index.html#contact">Contact</a>
+                    <a href="index.html">Home</a>
+                </nav>
+                <button class="burger" aria-label="Toggle Navigation">Menu</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="section" id="cv">
+                <div class="container">
+                    <h2>Curriculum Vitae</h2>
+                    <p class="subtitle">View the PDF and a quick summary.</p>
+                    <div class="grid">
+                        <div class="card reveal">
+                            <h3>Summary</h3>
+                            <p id="cv-summary">Software Engineer with experience across frontend, backend, and data systems. Focused on shipping maintainable code and measurable outcomes.</p>
+                        </div>
+                        <div class="card reveal">
+                            <h3>Experience</h3>
+                            <div id="cv-experience-list" class="timeline"></div>
+                        </div>
+                        <div class="card reveal">
+                            <h3>Education</h3>
+                            <ul id="cv-education-list">
+                                <li>B.S. in Atmospheric Sciences — University of Utah</li>
+                            </ul>
+                            <ul id="cv-education-list">
+                                <li>M.S. in Civil Engineering (Hydrology) — University of Washington</li>
+                            </ul>
+                            <ul id="cv-education-list">
+                                <li>(Expected 2028) PhD in Civil Engineering (Hydrology) — University of Washington</li>
+                            </ul>                                                        
+                        </div>
+                    </div>
+                    <div class="grid" style="margin-top:24px;">
+                        <div class="card reveal">
+                            <h3>Presentations</h3>
+                            <ul id="cv-presentations" class="list"></ul>
+                        </div>
+                        <div class="card reveal">
+                            <h3>Awards</h3>
+                            <ul id="cv-awards" class="list"></ul>
+                        </div>
+                        <div class="card reveal">
+                            <h3>Memberships</h3>
+                            <ul id="cv-memberships" class="list"></ul>
+                        </div>
+                    </div>
+                    <div class="grid" style="margin-top:24px;">
+                        <div class="card reveal">
+                            <h3>Skills</h3>
+                            <ul id="cv-skills" class="list"></ul>
+                        </div>
+                        <div class="card reveal">
+                            <h3>Certifications & Training</h3>
+                            <ul id="cv-certifications" class="list"></ul>
+                        </div>
+                        <div class="card reveal">
+                            <h3>Media Outreach</h3>
+                            <ul id="cv-media" class="list"></ul>
+                        </div>
+                    </div>
+                    <div class="card reveal" style="margin-top:24px;">
+                        <h3>CV (PDF)</h3>
+                        <div class="pdf-wrap">
+                            <object data="../CV.pdf" type="application/pdf" class="pdf-embed">
+                                <p>Your browser can't display PDFs. <a href="../CV.pdf" target="_blank" rel="noopener">Download the CV</a>.</p>
+                            </object>
+                        </div>
+                        <div class="cta" style="margin-top:16px;">
+                            <a class="btn primary" href="../CV.pdf" target="_blank" rel="noopener">Open CV (PDF)</a>
+                            <a class="btn" href="../CV.pdf" download>Download</a>
+                        </div>
+                    </div>
+                    <div class="cta" style="margin-top:32px;">
+                        <a class="btn primary" href="index.html">Back to Portfolio</a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container">© <span id="year"></span> Clinton Alden</div>
+        </footer>
+
+        <script src="assets/script.js" defer></script>
+    </body>
+    </html>
