@@ -130,3 +130,17 @@ a:hover { text-decoration: underline; }
   .media-item { grid-template-columns: 1fr; gap: 12px; padding-left: 12px; }
   .media-date { font-size: 12px; }
 }
+/* Gallery */
+.gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.gallery-item { border-radius: 8px; overflow: hidden; }
+.gallery-image { width: 100%; height: 300px; object-fit: cover; display: block; border-radius: 8px; transition: transform 0.3s ease; }
+.gallery-item:hover .gallery-image { transform: scale(1.05); }
+
+@media (max-width: 980px) {
+  .gallery { grid-template-columns: repeat(2, 1fr); }
+  .gallery-image { height: 250px; }
+}
+@media (max-width: 640px) {
+  .gallery { grid-template-columns: 1fr; }
+  .gallery-image { height: 200px; }
+}
