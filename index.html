@@ -3,25 +3,36 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Clinton Alden — Mountain Hydrology, Avalanche Science & Research</title>
-        <meta name="description" content="Clinton Alden is a graduate researcher at University of Washington studying mountain hydrology, snowpack dynamics, and avalanche science. Expert in atmospheric rivers and snow modeling." />
-        <meta name="keywords" content="Clinton Alden, mountain hydrology, avalanche science, snowpack, atmospheric rivers, snow research, UW civil engineering" />
+        <title>Clinton Alden — Hydrometeorological Consultant & Weather Data Analyst</title>
+        <meta name="description" content="Clinton Alden is a hydrometeorological consultant and researcher specializing in weather data analysis, mountain hydrology, snowpack dynamics, and avalanche science." />
+        <meta name="keywords" content="Clinton Alden, hydrometeorological consultant, weather data analysis, mountain hydrology, avalanche science, snowpack, atmospheric rivers, snow research" />
         <meta name="author" content="Clinton Alden" />
         <meta name="canonical" href="https://clintonalden.com/" />
         
         <!-- Open Graph / Social Sharing -->
         <meta property="og:type" content="profile" />
-        <meta property="og:title" content="Clinton Alden — Mountain Hydrology & Avalanche Researcher" />
-        <meta property="og:description" content="Graduate researcher studying snowpack dynamics, atmospheric rivers, and avalanche safety at University of Washington." />
+        <meta property="og:title" content="Clinton Alden — Hydrometeorological Consultant" />
+        <meta property="og:description" content="Hydrometeorological consultant specializing in weather data analysis, snowpack dynamics, and avalanche science." />
         <meta property="og:url" content="https://clintonalden.com/" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Clinton Alden — Research & Portfolio" />
-        <meta name="twitter:description" content="Mountain hydrology, avalanche science, and atmospheric research." />
+        <meta name="twitter:title" content="Clinton Alden — Hydrometeorological Consultant" />
+        <meta name="twitter:description" content="Weather data analysis, mountain hydrology, snowpack dynamics, and avalanche science." />
         
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="assets/styles.css" />
+        <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+                <!-- Google tag (gtag.js) -->
+                <script async src="https://www.googletagmanager.com/gtag/js?id=G-CKDM9ZJSHN"></script>
+                <script>
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer.push(arguments);}
+                    gtag('js', new Date());
+
+                    gtag('config', 'G-CKDM9ZJSHN');
+                </script>
         
         <!-- Schema.org Structured Data -->
         <script type="application/ld+json">
@@ -30,35 +41,47 @@
           "@type": "Person",
           "name": "Clinton Alden",
           "url": "https://clintonalden.com/",
-          "email": "cdalden@uw.edu",
-          "jobTitle": "Graduate Researcher, Civil Engineering",
+                    "email": "clintonaldenconsulting@gmail.com",
+                    "jobTitle": "Hydrometeorological Consultant",
           "worksFor": {
             "@type": "Organization",
             "name": "University of Washington",
             "department": "Mountain Hydrology Research Group"
           },
+                    "affiliation": {
+                        "@type": "Organization",
+                        "name": "University of Washington"
+                    },
           "knowsAbout": [
+                        "Hydrometeorological consulting",
+                        "Weather data analysis",
             "Mountain hydrology",
             "Snowpack dynamics",
             "Avalanche science",
             "Atmospheric rivers",
             "Snow modeling",
-            "Remote sensing",
-            "Climate change impacts"
+                        "Remote sensing"
           ],
           "sameAs": [
             "https://www.linkedin.com/in/clintonalden/",
-            "https://github.com/clinton-alden"
+            "https://github.com/clinton-alden",
+            "https://depts.washington.edu/mtnhydr/Pages/People%20Profiles/ClintonProfile.html"
           ]
         }
         </script>
     </head>
     <body>
+        <div class="banner">
+            <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
+        </div>
         <header class="header">
             <div class="container nav">
-                <div class="logo">CA</div>
+                <div class="logo">
+                    <img src="assets/favicon.svg" alt="Snowflake logo" class="logo-icon" />
+                </div>
                 <nav class="nav-links">
                     <a href="#about">About</a>
+                    <a href="#services">Services</a>
                     <a href="#experience">Experience</a>
                     <a href="#projects">Projects</a>
                     <a href="#skills">Skills</a>
@@ -72,14 +95,19 @@
         <main>
             <section class="section hero" id="home">
                 <div class="container">
-                    <div class="kicker">Welcome</div>
-                    <h1 class="reveal">Hi, I'm Clinton Alden.</h1>
-                    <h2 class="reveal">Mountain hydrology, atmospheric research, and avalanche science.</h2>
-                    <p class="reveal" id="summary">Graduate researcher in civil engineering studying snowpack dynamics, atmospheric rivers, and mountain hydrology. Passionate about communicating complex science to diverse audiences and advancing avalanche safety.</p>
-                    <div class="cta">
-                        <a class="btn primary" href="CV.pdf" target="_blank" rel="noopener">View CV (PDF)</a>
-                        <a class="btn" href="cv.html">Styled CV</a>
-                        <a class="btn" href="#contact">Get in Touch</a>
+                    <div class="hero-content">
+                        <div>
+                            <div class="kicker">Hydrometeorological Consulting</div>
+                            <h1 class="reveal">Hi, I'm Clinton Alden.</h1>
+                            <h2 class="reveal">Hydrometeorological data analysis & consulting.</h2>
+                            <p class="reveal" id="summary">I help organizations understand and leverage hydrometeorological data. With a background in mountain hydrology and atmospheric science research, I deliver data analysis solutions that support weather forecasting, water resource planning, and data-driven decision making.</p>
+                            <div class="cta">
+                            <a class="btn primary" href="#services">View Services</a>
+                            <a class="btn" href="#contact">Start a Project</a>
+                            <a class="btn" href="cv.html" style="opacity: 0.7;">Research Background</a>
+                        </div>
+                        </div>
+                        <img src="assets/headshot.jpeg" alt="Clinton Alden" class="headshot headshot-hero" />
                     </div>
                 </div>
             </section>
@@ -87,16 +115,154 @@
             <section class="section" id="about">
                 <div class="container">
                     <h2>About</h2>
-                    <p class="subtitle">Research focus and background.</p>
-                    <p class="reveal">I study the interactions between snow, weather, and clouds in mountains. My research integrates field observations, satellite data, and numerical modeling to understand atmospheric rivers, snow dynamics, and their cascading effects on avalanche risk and hydrology. Beyond research, I teach and train others on snow science, avalanche awareness, and weather forecasting.</p>
-                    <p class="reveal" style="margin-top: 16px;"><a href="#experience">View my experience</a> or <a href="#projects">research projects</a> to learn more.</p>
+                    <p class="subtitle">Consulting + Research Background</p>
+                    <p class="reveal">I combine deep expertise in hydrometeorological research with practical consulting experience. My background spans mountain hydrology, meteorology, and snow science—skills I apply to solve real-world data analysis challenges for clients. I work with organizations to extract insights from complex environmental datasets and translate technical findings into actionable intelligence.</p>
+                    <p class="reveal" style="margin-top: 16px;"><a href="#services">Explore my services</a> or <a href="#experience">view my background</a> to learn more.</p>
+                </div>
+            </section>
+
+            <section class="section" id="services">
+                <div class="container">
+                    <h2>Services</h2>
+                    <p class="subtitle">Hydrometeorological data analysis & consulting.</p>
+                    <div class="grid">
+                        <article class="card reveal">
+                            <h3>Hydrologic Data Analysis</h3>
+                            <p>Process and analyze precipitation, snowpack, streamflow, and other hydrologic datasets. Extract patterns and insights to support forecasting, planning, and decision-making.</p>
+                            <div class="tags">
+                                <span class="tag">Data Processing</span>
+                                <span class="tag">Statistical Analysis</span>
+                                <span class="tag">Visualization</span>
+                            </div>
+                        </article>
+                        <article class="card reveal">
+                            <h3>Snow & Weather Education</h3>
+                            <p>AIARE-certified instructor delivering snow and weather education to mountain professionals and recreationalists. Experience teaching avalanche professionals, backcountry users, and general audiences from graduate level to awareness-focused training.</p>
+                            <div class="tags">
+                                <span class="tag">AIARE Certified</span>
+                                <span class="tag">Avalanche Training</span>
+                                <span class="tag">Science Education</span>
+                            </div>
+                        </article>
+                        <article class="card reveal">
+                            <h3>Science Communication & Media Outreach</h3>
+                            <p>Translate complex hydrometeorological science for general audiences. Passionate about disseminating science nuances, clarifying buzzwords, and making technical topics accessible and engaging to the public.</p>
+                            <div class="tags">
+                                <span class="tag">Science Communication</span>
+                                <span class="tag">Public Outreach</span>
+                                <span class="tag">Content Creation</span>
+                            </div>
+                        </article>
+                    </div>
+                    <p class="reveal" style="margin-top: 32px; text-align: center; font-size: 24px;"><strong>Have a hydrometeorological challenge?</strong> <a href="#contact">Get in touch</a> to discuss your project.</p>
+                </div>
+            </section>
+
+            <section class="section" id="why-work">
+                <div class="container">
+                    <h2>Why Work With Me</h2>
+                    <p class="subtitle">Consulting that blends research rigor with practical outcomes.</p>
+                    <div class="grid">
+                        <article class="card reveal">
+                            <h3>Research-Backed Insight</h3>
+                            <p>Graduate-level training in mountain hydrology and atmospheric science, applied directly to real-world consulting questions.</p>
+                            <div class="tags">
+                                <span class="tag">UW Research</span>
+                                <span class="tag">Research-Based</span>
+                            </div>
+                        </article>
+                        <article class="card reveal">
+                            <h3>Clear, Actionable Outputs</h3>
+                            <p>Technical analysis translated into concise reports, visuals, and recommendations your team can use immediately.</p>
+                            <div class="tags">
+                                <span class="tag">Decision Support</span>
+                                <span class="tag">Communication</span>
+                            </div>
+                        </article>
+                        <article class="card reveal">
+                            <h3>Flexible Engagements</h3>
+                            <p>Project-based consulting designed to fit your scope, timeline, and budget—ideal for agencies, nonprofits, and industry.</p>
+                            <div class="tags">
+                                <span class="tag">Project-Based</span>
+                                <span class="tag">Collaborative</span>
+                            </div>
+                        </article>
+                    </div>
+                    <p class="reveal" style="margin-top: 24px; text-align: center;">Ready to discuss your goals? <a href="#contact">Let’s talk</a>.</p>
+                </div>
+            </section>
+
+            <section class="section" id="trust">
+                <div class="container">
+                    <h2>Credentials & Trust</h2>
+                    <p class="subtitle">Signals of credibility for partners and clients.</p>
+                    <div class="grid">
+                        <article class="card reveal">
+                            <h3>University of Washington</h3>
+                            <p>PhD-level training in Civil & Environmental Engineering with a focus on mountain hydrology.</p>
+                            <div class="tags">
+                                <span class="tag">UW Research</span>
+                                <span class="tag">Graduate Research</span>
+                            </div>
+                        </article>
+                        <article class="card reveal">
+                            <h3>AIARE Certified Instructor</h3>
+                            <p>Qualified to teach avalanche awareness, snow science, and backcountry safety.</p>
+                            <div class="tags">
+                                <span class="tag">AIARE</span>
+                                <span class="tag">Education</span>
+                            </div>
+                        </article>
+                        <article class="card reveal">
+                            <h3>Media Expertise</h3>
+                            <p>Featured by NPR (KUOW), Seattle Weekly, and The Mercury News for snow and weather commentary.</p>
+                            <div class="tags">
+                                <span class="tag">Press</span>
+                                <span class="tag">Science Communication</span>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="media">
+                <div class="container">
+                    <h2>Media & Press</h2>
+                    <p class="subtitle">Science communication and public outreach.</p>
+                    <div class="media-list">
+                        <article class="media-item reveal">
+                            <div class="media-date">11 February 2026</div>
+                            <div class="media-content">
+                                <p class="media-source"><strong>KUOW National Public Radio Seattle</strong></p>
+                                <h3><a href="https://www.kuow.org/stories/the-snow-flaked-on-us-this-year-that-s-got-meteorologists-worried" target="_blank" rel="noopener">"The snow flaked on us this year. That's got meteorologists worried"</a></h3>
+                                <p>Featured commentary on snow dynamics and climate patterns affecting Pacific Northwest weather.</p>
+                            </div>
+                        </article>
+                        <article class="media-item reveal">
+                            <div class="media-date">5 January 2026</div>
+                            <div class="media-content">
+                                <p class="media-source"><strong>Seattle Weekly</strong></p>
+                                <h3><a href="https://www.seattleweekly.com/northwest/flood-science-how-decembers-atmospheric-river-soaked-wa/#:~:text=Seattle%20Weekly-,Flood%20science:%20How%20December's%20atmospheric%20river%20soaked%20Washington,and%20warmer%20air%20to%20Washington." target="_blank" rel="noopener">"Flood science: How December's atmospheric river soaked Washington"</a></h3>
+                                <p>Expert analysis on atmospheric rivers and their impact on regional precipitation and flooding.</p>
+                            </div>
+                        </article>
+                        <article class="media-item reveal">
+                            <div class="media-date">18 January 2024</div>
+                            <div class="media-content">
+                                <p class="media-source"><strong>The Mercury News</strong></p>
+                                <h3><a href="https://www.mercurynews.com/2024/01/18/dangerous-avalanches-linked-to-one-weird-night-and-what-you-need-to-know-to-stay-safe/" target="_blank" rel="noopener">"Dangerous avalanches linked to one weird night - and what you need to know to stay safe"</a></h3>
+                                <p>Commentary on avalanche dynamics and safety education for backcountry recreationalists.</p>
+                            </div>
+                        </article>
+                    </div>
+                    <p class="reveal" style="margin-top: 24px; text-align: center; font-size: 24px;">Interested in media collaboration or expert commentary? <button id="media-email-btn" class="btn" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 0; font-size: inherit; cursor: pointer; text-decoration: underline;" onclick="revealMediaEmail()">Get in touch</button>.</p>
                 </div>
             </section>
 
             <section class="section" id="experience">
                 <div class="container">
-                    <h2>Experience</h2>
-                    <p class="subtitle">Recent roles & impact.</p>
+                    <h2>Experience & Background</h2>
+                    <p class="subtitle">Research expertise & professional roles.</p>
                     <div class="timeline" id="experience-list">
                         <!-- Populated dynamically from assets/data.json -->
                     </div>
@@ -179,7 +345,8 @@
                         <span id="contact-location"></span>
                     </p>
                     <div class="cta">
-                        <a id="contact-email-link" class="btn primary" href="cdalden@uw.edu">Email Me</a>
+                        <button id="consulting-email-btn" class="btn primary" onclick="revealConsultingEmail()">Email Me</button>
+                        <a class="btn" href="https://www.linkedin.com/in/clintonalden/" target="_blank" rel="noopener">LinkedIn</a>
                         <a class="btn" href="https://github.com/clinton-alden" target="_blank" rel="noopener">GitHub</a>
                     </div>
                 </div>
@@ -191,5 +358,20 @@
         </footer>
 
         <script src="assets/script.js" defer></script>
+        <script>
+            function revealConsultingEmail() {
+                const btn = document.getElementById('consulting-email-btn');
+                const email = 'clintonaldenconsulting@gmail.com';
+                btn.innerHTML = `<a href="mailto:${email}" style="color: var(--accent); text-decoration: none;">${email}</a>`;
+                btn.onclick = null;
+            }
+            
+            function revealMediaEmail() {
+                const btn = document.getElementById('media-email-btn');
+                const email = 'cdalden@uw.edu';
+                btn.innerHTML = `<a href="mailto:${email}" style="color: var(--accent); text-decoration: none;">${email}</a>`;
+                btn.onclick = null;
+            }
+        </script>
     </body>
 </html>

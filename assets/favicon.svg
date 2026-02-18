@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#0f1f3f"/>
+  <g transform="translate(50, 50)">
+    <!-- Main snowflake with 6-fold symmetry -->
+    <g stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none">
+      <!-- Center point -->
+      <circle cx="0" cy="0" r="2" fill="#ffffff"/>
+      
+      <!-- 6 main branches (rotated 60° each) -->
+      <g id="branch">
+        <line x1="0" y1="0" x2="0" y2="-30"/>
+        <line x1="0" y1="-12" x2="-8" y2="-20"/>
+        <line x1="0" y1="-12" x2="8" y2="-20"/>
+        <line x1="0" y1="-22" x2="-6" y2="-28"/>
+        <line x1="0" y1="-22" x2="6" y2="-28"/>
+      </g>
+      
+      <use href="#branch" transform="rotate(60)"/>
+      <use href="#branch" transform="rotate(120)"/>
+      <use href="#branch" transform="rotate(180)"/>
+      <use href="#branch" transform="rotate(240)"/>
+      <use href="#branch" transform="rotate(300)"/>
+    </g>
+  </g>
+</svg>
