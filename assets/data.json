@@ -1,5 +1,5 @@
 {
-  "summary": "Graduate researcher and instructor in civil engineering and atmospheric sciences focused on mountain hydrology, snowpack, and avalanche awareness.",
+  "summary": "Hydrometeorological consultant and researcher specializing in weather data analysis, mountain hydrology, snowpack dynamics, and avalanche science.",
   "contact": {
     "email": "cdalden@uw.edu",
     "phone": "858) 344-9193",
@@ -10,55 +10,71 @@
       "degree": "Doctor of Philosophy, Civil Engineering",
       "institution": "University of Washington, Mountain Hydrology Research Group",
       "period": "March 2025 - 2028 (expected)",
-      "notes": ["Courses: Physical Hydrology, Geospatial Data Analysis, Snow Modeling"]
+      "notes": ["Selected Coursework: Physical Hydrology, Geospatial Data Analysis, Snow Modeling"]
     },
     {
       "degree": "Master of Science, Civil Engineering",
       "institution": "University of Washington, Mountain Hydrology Research Group",
       "period": "September 2023 - March 2025",
-      "notes": ["3.87 GPA", "Thesis: The impact of warming temperatures on snowpack structure"]
+      "notes": ["GPA: 3.87", "Thesis: The Impact of Warming Temperatures on Snowpack Structure"]
     },
     {
       "degree": "Bachelor of Science, Atmospheric Sciences",
       "institution": "University of Utah",
       "period": "Aug 2019 - May 2023",
-      "notes": ["3.8 GPA", "Main Courses: Snow and Avalanche Dynamics, Atmospheric Dynamics, Physical Meteorology, Numerical Weather Prediction"]
+      "notes": ["GPA: 3.80", "Selected Coursework: Snow and Avalanche Dynamics, Atmospheric Dynamics, Physical Meteorology, Numerical Weather Prediction"]
     }
   ],
   "experience": [
     {
       "title": "Graduate Research/Teaching Assistant",
-      "company": "University of Washington, Department of Civil and Environmental Engineering, Mountain Hydrology Research Group",
+      "company": "University of Washington, Department of Civil and Environmental Engineering",
       "location": "Seattle, Washington",
       "period": "Sep 2023 - Present",
-      "bullets": ["Teaching Assistant for Data Analysis in Water Sciences, Fall 2025"]
+      "bullets": [
+        "Teaching Assistant for Data Analysis in Water Sciences, Fall 2025",
+        "Graduate Research Assistant in Professor Jessica Lundquist’s Mountain Hydrology Research Group"
+      ]
+    },
+    {
+      "title": "Applied Hydrometeorological Consulting",
+      "company": "Clinton Alden Consulting",
+      "location": "Remote",
+      "period": "Jan 2026 - Present",
+      "bullets": [
+        "Advise private-sector clients on the quality, limitations, and appropriate use of meteorological and hydrologic datasets",
+        "Provide technical guidance on best practices for environmental data analysis"
+      ]
     },
     {
       "title": "Avalanche Awareness Instructor",
       "company": "Northwest Avalanche Center",
       "location": "North Bend, Washington",
       "period": "Sep 2024 - Present",
-      "bullets": ["Taught avalanche awareness classes to the general public, discussing snow and weather"]
+      "bullets": [
+        "Taught avalanche awareness classes to the general public, discussing snow and weather",
+        "Both classroom and field-based instruction to audiences of all ages"
+      ]
+    },
+    {
+      "title": "Forecaster/Co-Founder",
+      "company": "CascadeMountainWeather.com",
+      "location": "Remote",
+      "period": "Nov 2025 - Present",
+      "bullets": [
+        "Co-founded and led forecasting for a mountain weather and snow information platform",
+        "Produce regular synoptic- and mesoscale-scale forecast discussions for a public audience",
+        "Develop and maintain automated weather model visualization and real-time dashboards"
+      ]
     },
     {
       "title": "Lab Assistant - Atmospheric Sciences",
       "company": "UC San Diego, Center for Western Weather and Water Extremes (CW3E)",
       "location": "Remote",
-      "period": "Sep 2022 - August 2023",
+      "period": "Jun 2022 - Aug 2023",
       "bullets": [
-        "Continuation of CW3E internship with Dr. Minghua Zheng researching atmospheric rivers and their associated cloud properties using the MODIS-Terra Satellite.",
-        "Assisted in the writing of a paper detailing the October 2021 Northern California atmospheric rivers with Dr. Zhenhai Zhang.",
-        "Assisting with ensemble sensitivity guidance for US Air Force C-130 and NOAA G-IV dropsonde flights based on empirical orthogonal function analysis of precipitation for the Atmospheric River Reconnaissance field campaign."
-      ]
-    },
-    {
-      "title": "Summer Internship",
-      "company": "UC San Diego, Center for Western Weather and Water Extremes (CW3E)",
-      "location": "La Jolla, California",
-      "period": "May 2022 - Sep 2022",
-      "bullets": [
-        "Worked on an internship project with Dr. Minghua Zheng researching the potential for atmospheric river and cloud property characterization using remote sensing tools.",
-        "Studied the Category 5 atmospheric river that occured in October 2021 over Northern California using ERA5 Reanalysis data and the MODIS-Terra satellite."
+        "Conducted research on atmospheric rivers and cloud properties using MODIS-Terra satellite observations, working with Dr. Minghua Zheng",
+        "Supported ensemble sensitivity guidance for C-130 and NOAA G-IV dropsonde missions during the Atmospheric River Reconnaissance campaign"
       ]
     },
     {
@@ -67,48 +83,47 @@
       "location": "Salt Lake City, Utah",
       "period": "December 2021 - May 2023",
       "bullets": [
-        "Assisted in online asynchronous instruction of Atmos 1000 (Secrets of the Greatest Snow on Earth) for Professor Jim Steenburgh in Spring 2022 and Spring 2023 semesters.",
-        "Graded 250 students weekly working with another TA",
-        "Held office hours weekly to answer student questions.",
-        "Assisted with Atmos 5260 (Snow and Avalanche Dynamics) advising students during field sessions making snow dynamics and hydrology observations in the Central Wasatch Mountains."
-      ]
-    },
-    {
-      "title": "Forecaster",
-      "company": "Utah Ski Weather - University of Utah, Department of Atmospheric Sciences",
-      "period": "December 2021 - May 2023",
-      "bullets": [
-        "Volunteer forecaster for a blog, writing weather forecasts for ski areas in Northern Utah.",
-        "Disseminated complex atmospheric science topics and related weather phenomena to concepts understandable for a general audience.",
-        "Analyzed different weather models and parameters to forecast at both synoptic scale and mesoscale for mountain snow, temperature, and wind."
+        "Teaching assistant for undergraduate atmospheric science courses (Atmos 1000; instructor: Prof. Jim Steenburgh)",
+        "Led office hours, graded coursework, and supported instruction for 250 students",
+        "Assisted with field-based instruction for Atmos 5260 (Snow and Avalanche Dynamics) in the Wasatch Mountains"
       ]
     }
   ],
   "presentations": [
     {
+      "title": "From SWE to Ski: Placing the 2026 Washington Snowpack in Historical Context",
+      "date": "12 February 2026",
+      "organization": "Department of Civil and Environmental Engineering Seminar, University of Washington"
+    },
+    {
+      "title": "Is that a cloud? Snow–cloud discrimination using geostationary satellites",
+      "date": "27 January 2026",
+      "organization": "Computer Science for the Environment, eScience Institute (University of Washington)"
+    },
+    {
       "title": "Turning Your World Upside Down: Atmospheric temperature inversions and their impacts on snow conditions",
       "date": "25 October 2025",
-      "organization": "Northwest Snow and Avalanche Workshop (NWAC)"
+      "organization": "Northwest Snow and Avalanche Workshop, Northwest Avalanche Center"
     },
     {
       "title": "Reading Between the Layers: What will our snowpack look like with climate change?",
       "date": "26 October 2024",
-      "organization": "Northwest Snow and Avalanche Workshop (NWAC)"
+      "organization": "Northwest Snow and Avalanche Workshop, Northwest Avalanche Center"
     },
     {
-      "title": "32nd Conference on Weather Analysis and Forecasting",
+      "title": "An Overview of a Heavy Precipitation Event over California in October 2021: Roles of an Extreme Atmospheric River and Explosive Extratropical Cyclone",
       "date": "19 July 2023",
-      "organization": "American Meteorological Society"
+      "organization": "32nd Conference on Weather Analysis and Forecasting, American Meteorological Society"
     },
     {
-      "title": "Yampa Basin Rendezvous — Student Session",
+      "title": "Atmospheric river impacts in the Yampa Basin",
       "date": "23 September 2022",
-      "organization": "Yampa Basin Rendezvous"
+      "organization": "Yampa Basin Rendezvous, Center for Western Weather and Water Extremes"
     },
     {
-      "title": "Center for Western Weather and Water Extremes — Summer Internship Presentation",
+      "title": "Atmospheric river impacts in Northern California",
       "date": "16 September 2022",
-      "organization": "CW3E"
+      "organization": "CW3E Friday Science Seminar, Center for Western Weather and Water Extremes"
     }
   ],
   "awards": [
