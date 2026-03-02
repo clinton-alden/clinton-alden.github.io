@@ -7,8 +7,8 @@
   --accent: #4a90e2;
   --accent-dim: rgba(74, 144, 226, 0.15);
   --shadow: rgba(2,12,27,0.7);
-  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: "Roboto Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-mono: "Roboto Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --content-max: 1000px;
 }
 
@@ -19,7 +19,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   line-height: 1.6;
 }
 img { max-width: 100%; display: block; }
@@ -143,4 +143,70 @@ a:hover { text-decoration: underline; }
 @media (max-width: 640px) {
   .gallery { grid-template-columns: 1fr; }
   .gallery-image { height: 200px; }
+}
+
+/* Loader */
+#loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+
+#loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader-content {
+  text-align: center;
+}
+
+.typing-container {
+  font-family: "Roboto Mono", monospace;
+  font-size: 48px;
+  color: #ffffff;
+  font-weight: 600;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#typing-text {
+  white-space: pre;
+}
+
+.cursor {
+  width: 3px;
+  height: 48px;
+  background: #ffffff;
+  margin-left: 6px;
+  display: inline-block;
+  animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .typing-container {
+    font-size: 32px;
+  }
+  .cursor {
+    height: 32px;
+  }
 }
