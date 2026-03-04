@@ -130,9 +130,8 @@
                 <div class="container">
                     <div class="hero-content">
                         <div>
-                            <div class="kicker">Hydrometeorological Consulting</div>
+                            <h2 class="reveal"><span id="hero-typing-text"></span><span class="cursor-small"></span></h2>
                             <h1 class="reveal">Hi, I'm Clinton Alden.</h1>
-                            <h2 class="reveal">Hydrometeorological Data Analysis & Science Communication.</h2>
                             <p class="reveal" id="summary">I help organizations understand and leverage hydrometeorological data. With a background in mountain hydrology and atmospheric science research, I deliver data analysis solutions that support weather forecasting, water resource planning, and data-driven decision making.</p>
                             <div class="cta">
                             <a class="btn primary" href="#services">View Services</a>
@@ -392,27 +391,27 @@
 
         <script>
             // Typing loader animation
-            const phrases = ['Snow Hydrology', 'Mountain Meteorology', 'Science Education', 'Clinton Alden'];
-            let currentPhraseIndex = 0;
-            let charIndex = 0;
-            let isDeleting = false;
+            const loaderPhrases = ['Snow Hydrology', 'Mountain Meteorology', 'Science Education', 'Clinton Alden'];
+            let loaderPhraseIndex = 0;
+            let loaderCharIndex = 0;
+            let loaderIsDeleting = false;
             const typingText = document.getElementById('typing-text');
             const loader = document.getElementById('loader');
             
-            function type() {
-                const currentPhrase = phrases[currentPhraseIndex];
+            function typeLoader() {
+                const currentPhrase = loaderPhrases[loaderPhraseIndex];
                 
-                if (isDeleting) {
+                if (loaderIsDeleting) {
                     // Delete mode
-                    charIndex--;
-                    typingText.textContent = currentPhrase.substring(0, charIndex);
+                    loaderCharIndex--;
+                    typingText.textContent = currentPhrase.substring(0, loaderCharIndex);
                     
-                    if (charIndex === 0) {
-                        isDeleting = false;
-                        currentPhraseIndex++;
+                    if (loaderCharIndex === 0) {
+                        loaderIsDeleting = false;
+                        loaderPhraseIndex++;
                         
                         // Check if we've typed all phrases
-                        if (currentPhraseIndex === phrases.length) {
+                        if (loaderPhraseIndex === loaderPhrases.length) {
                             // Final phrase (Clinton Alden) typed, now hide loader
                             setTimeout(() => {
                                 loader.classList.add('hidden');
@@ -421,18 +420,18 @@
                         }
                     }
                     
-                    setTimeout(type, 25);
+                    setTimeout(typeLoader, 25);
                 } else {
                     // Type mode
-                    charIndex++;
-                    typingText.textContent = currentPhrase.substring(0, charIndex);
+                    loaderCharIndex++;
+                    typingText.textContent = currentPhrase.substring(0, loaderCharIndex);
                     
-                    if (charIndex === currentPhrase.length) {
+                    if (loaderCharIndex === currentPhrase.length) {
                         // Pause before deleting (but don't delete on final phrase)
-                        if (currentPhraseIndex < phrases.length - 1) {
+                        if (loaderPhraseIndex < loaderPhrases.length - 1) {
                             setTimeout(() => {
-                                isDeleting = true;
-                                type();
+                                loaderIsDeleting = true;
+                                typeLoader();
                             }, 400);
                         } else {
                             // Keep final phrase visible
@@ -441,23 +440,64 @@
                             }, 1500);
                         }
                     } else {
-                        setTimeout(type, 40);
+                        setTimeout(typeLoader, 40);
                     }
                 }
             }
             
-            // Start typing animation
+            // Hero section typing animation
+            const heroTypingList = ['Snow Hydrology', 'Mountain Meteorology', 'Scientific Communication', 'Atmospheric Sciences', 'Avalanche Education', 'Public Outreach'];
+            let heroPhrasIndex = 0;
+            let heroCharIndex = 0;
+            let heroIsDeleting = false;
+            const heroTypingText = document.getElementById('hero-typing-text');
+            
+            function typeHero() {
+                const currentPhrase = heroTypingList[heroPhrasIndex];
+                
+                if (heroIsDeleting) {
+                    // Delete mode
+                    heroCharIndex--;
+                    heroTypingText.textContent = currentPhrase.substring(0, heroCharIndex);
+                    
+                    if (heroCharIndex === 0) {
+                        heroIsDeleting = false;
+                        heroPhrasIndex = (heroPhrasIndex + 1) % heroTypingList.length; // Loop indefinitely
+                    }
+                    
+                    setTimeout(typeHero, 50);
+                } else {
+                    // Type mode
+                    heroCharIndex++;
+                    heroTypingText.textContent = currentPhrase.substring(0, heroCharIndex);
+                    
+                    if (heroCharIndex === currentPhrase.length) {
+                        // Pause before deleting
+                        setTimeout(() => {
+                            heroIsDeleting = true;
+                            typeHero();
+                        }, 2000);
+                    } else {
+                        setTimeout(typeHero, 100);
+                    }
+                }
+            }
+            
+            // Start animations
             document.addEventListener('DOMContentLoaded', () => {
-                type();
+                typeLoader();
+                typeHero();
             });
             
             // If DOMContentLoaded already fired
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
-                    type();
+                    typeLoader();
+                    typeHero();
                 });
             } else {
-                type();
+                typeLoader();
+                typeHero();
             }
         </script>
 

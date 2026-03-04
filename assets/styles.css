@@ -210,3 +210,13 @@ a:hover { text-decoration: underline; }
     height: 32px;
   }
 }
+
+/* Hero typing cursor */
+.cursor-small {
+  width: 2px;
+  height: 1.2em;
+  background: var(--accent);
+  margin-left: 4px;
+  display: inline-block;
+  animation: blink 0.7s infinite;
+}
