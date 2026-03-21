@@ -430,10 +430,27 @@
                         let switchedToEsri = false;
                         let switchedToOsm = false;
                         let hasLoadedAnyTile = false;
+                        let revealedLeaflet = false;
 
-                        topoLayer.on('tileload', () => { hasLoadedAnyTile = true; });
-                        esriTopoLayer.on('tileload', () => { hasLoadedAnyTile = true; });
-                        osmLayer.on('tileload', () => { hasLoadedAnyTile = true; });
+                        const revealLeaflet = () => {
+                            if (revealedLeaflet || usedFallback) return;
+                            revealedLeaflet = true;
+                            if (mapEl) mapEl.classList.remove('is-hidden');
+                            fallbackMapEl.classList.remove('is-visible');
+                        };
+
+                        topoLayer.on('tileload', () => {
+                            hasLoadedAnyTile = true;
+                            revealLeaflet();
+                        });
+                        esriTopoLayer.on('tileload', () => {
+                            hasLoadedAnyTile = true;
+                            revealLeaflet();
+                        });
+                        osmLayer.on('tileload', () => {
+                            hasLoadedAnyTile = true;
+                            revealLeaflet();
+                        });
 
                         topoLayer.on('tileerror', () => {
                             if (switchedToEsri) return;
@@ -480,9 +497,6 @@
 
                             markers.push({ marker, element: markerElement });
                         });
-
-                        mapEl.classList.remove('is-hidden');
-                        fallbackMapEl.classList.remove('is-visible');
 
                         // Only fall back to SVG if absolutely no provider ever loads a tile.
                         setTimeout(() => {
@@ -544,6 +558,11 @@
                         fallbackMarkersEl.appendChild(marker);
                     });
                 }
+
+                // Start with SVG fallback visible so the map pane is never blank.
+                if (mapEl) mapEl.classList.add('is-hidden');
+                fallbackMapEl.classList.add('is-visible');
+                buildFallbackMarkers();
 
                 // Try Leaflet first, then fall back to SVG
                 function initAndSetup() {
