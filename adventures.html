@@ -20,6 +20,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="assets/styles.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
         <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
         <link rel="apple-touch-icon" href="assets/favicon.svg" />
 
@@ -104,29 +105,107 @@
         </header>
 
         <main>
-            <section class="section" id="adventures">
+            <section class="section" id="adventures" style="padding-bottom: 0;">
                 <div class="container">
                     <h1>Adventures</h1>
                     <p class="subtitle">Beyond the science</p>
                     <p class="reveal" style="margin-top: 24px;">I'm an avid skier, climber, biker, and trail runner with 
                         a deep passion for the mountains in all seasons (but I can't lie, winter is objectively the best season). When I'm not lost in many tabs of SNOTEL and weather model data, 
                         you'll find me exploring the mountains in search of pretty clouds and snow.</p>
-                    
-                    <div class="gallery" style="margin-top: 48px;">
-                        <div class="gallery-item reveal">
-                            <img src="assets/blackcrook_pk.jpeg" alt="Black Crook Peak adventure" class="gallery-image" />
-                            <p style="margin-top: 16px; font-size: 14px; color: var(--muted);">Sheeprock Mountains, Utah</p>
+                </div>
+
+                <section class="ski-lines-board reveal" aria-labelledby="ski-lines-title">
+                    <div class="ski-lines-wrapper">
+                        <div class="ski-lines-intro">
+                            <p class="ski-lines-kicker">Backcountry Skiing Exploits</p>
+                            <h2 id="ski-lines-title">[Section heading]</h2>
+                            <p class="ski-lines-description">[Add intro text here]</p>
                         </div>
-                        <div class="gallery-item reveal">
-                            <img src="assets/zermatt.jpeg" alt="Zermatt climbing adventure" class="gallery-image" />
-                            <p style="margin-top: 16px; font-size: 14px; color: var(--muted);">Zermatt, Switzerland</p>
+
+                        <div class="ski-lines-stats" aria-label="Backcountry ski line stats">
+                            <div class="ski-line-stat">
+                                <strong id="ski-lines-total">0</strong>
+                                <span>lines logged</span>
+                            </div>
+                            <div class="ski-line-stat">
+                                <strong id="ski-lines-states">0</strong>
+                                <span>states covered</span>
+                            </div>
+                            <div class="ski-line-stat">
+                                <strong id="ski-lines-couloirs">0</strong>
+                                <span>couloirs skied</span>
+                            </div>
                         </div>
-                        <div class="gallery-item reveal">
-                            <img src="assets/rubys_ridge.jpeg" alt="Ruby's Ridge mountain adventure" class="gallery-image" />
-                            <p style="margin-top: 16px; font-size: 14px; color: var(--muted);">Cascade Mountains, Washington</p>
+
+                        <div class="ski-lines-layout">
+                            <div class="ski-map-card">
+                                <div class="ski-map-meta">
+                                    <span>[Map label]</span>
+                                    <span>[Map note]</span>
+                                </div>
+                                <div class="ski-map-stack">
+                                    <div id="ski-leaflet-map" class="ski-leaflet-map" role="img" aria-label="Interactive map of completed backcountry ski lines"></div>
+                                    <svg id="ski-fallback-map" class="ski-fallback-map" viewBox="0 0 620 430" role="img" aria-label="Fallback map of completed backcountry ski lines">
+                                        <defs>
+                                            <linearGradient id="fallback-map-sky" x1="0" y1="0" x2="1" y2="1">
+                                                <stop offset="0%" stop-color="#163057" />
+                                                <stop offset="100%" stop-color="#091525" />
+                                            </linearGradient>
+                                            <linearGradient id="fallback-map-ridge" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stop-color="rgba(123, 163, 208, 0.3)" />
+                                                <stop offset="100%" stop-color="rgba(123, 163, 208, 0.02)" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect x="0" y="0" width="620" height="430" rx="28" fill="url(#fallback-map-sky)" />
+                                        <g class="fallback-map-grid" aria-hidden="true">
+                                            <line x1="110" y1="40" x2="110" y2="380" />
+                                            <line x1="220" y1="40" x2="220" y2="380" />
+                                            <line x1="330" y1="40" x2="330" y2="380" />
+                                            <line x1="440" y1="40" x2="440" y2="380" />
+                                            <line x1="80" y1="95" x2="540" y2="95" />
+                                            <line x1="80" y1="175" x2="540" y2="175" />
+                                            <line x1="80" y1="255" x2="540" y2="255" />
+                                            <line x1="80" y1="335" x2="540" y2="335" />
+                                        </g>
+                                        <g class="fallback-map-terrain" aria-hidden="true">
+                                            <path d="M76 312C131 258 171 239 229 252C262 259 296 279 336 272C386 264 417 210 466 211C507 213 543 251 576 290L576 380L76 380Z" fill="url(#fallback-map-ridge)" />
+                                            <path d="M90 270C141 219 184 205 231 216C282 228 306 258 353 254C404 250 433 176 483 181C520 184 553 217 578 250" />
+                                            <path d="M94 222C125 196 156 183 201 187C248 192 275 220 317 221C360 222 389 179 438 164C485 149 537 168 576 208" />
+                                        </g>
+                                        <g class="fallback-map-labels" aria-hidden="true">
+                                            <text x="130" y="100">WA</text>
+                                            <text x="166" y="172">OR</text>
+                                            <text x="171" y="262">CA</text>
+                                            <text x="372" y="192">UT</text>
+                                            <text x="447" y="119">ID</text>
+                                        </g>
+                                        <g id="ski-fallback-markers"></g>
+                                    </svg>
+                                </div>
+                                <p class="ski-map-caption" id="ski-map-caption">[Map caption]</p>
+                            </div>
+
+                            <div class="ski-list-card">
+                                <div class="ski-list-header">
+                                    <h3>Lines</h3>
+                                    <p>[List note]</p>
+                                </div>
+                                <div class="ski-progress" aria-hidden="true">
+                                    <span id="ski-progress-fill"></span>
+                                </div>
+                                <div class="ski-line-list" id="ski-line-list" data-ski-lines></div>
+                            </div>
+
+                            <div class="ski-photos-card">
+                                <div class="ski-list-header">
+                                    <h3>Photos</h3>
+                                    <p>Active line</p>
+                                </div>
+                                <div id="ski-lines-gallery" class="gallery" style="margin-top: 16px;"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </section>
 
             <section class="section" id="contact" style="text-align: center;">
@@ -149,7 +228,430 @@
             </div>
         </footer>
 
+        <script>
+            window.__USE_INLINE_SKI_LINES__ = true;
+        </script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="assets/script.js"></script>
+        <script id="ski-lines-data" type="application/json">
+            [
+                {
+                    "name": "Twin Couloirs of Deseret Peak",
+                    "area": "Stansbury Mountains",
+                    "state": "Utah",
+                    "style": "Couloir",
+                    "date": "April 17, 2021",
+                    "lat": 40.45673,
+                    "lon": -112.62192,
+                    "images": ["assets/lines/deseretpk_twincouloirs_20210417.jpeg"]
+                },
+                {
+                    "name": "Black Crook Peak",
+                    "area": "Sheeprock Mountains",
+                    "state": "Utah",
+                    "style": "Peak",
+                    "date": "April 15, 2023",
+                    "lat": 39.98449,
+                    "lon": -112.54046,
+                    "images": ["assets/lines/blackcrookpk_20230415/blackcrook_pk.jpeg", "assets/lines/blackcrookpk_20230415/blackcrook2.jpeg"]
+                },
+                {
+                    "name": "Temple Couloir",
+                    "area": "Wasatch Range",
+                    "state": "Utah",
+                    "style": "Couloir",
+                    "lat": 40.46431,
+                    "lon": -112.62864
+                },
+                {
+                    "name": "Y Couloir",
+                    "area": "Wasatch Range",
+                    "state": "Utah",
+                    "style": "Couloir",
+                    "date": "January 29, 2022",
+                    "lat": 40.55903,
+                    "lon": -111.72657,
+                    "images": ["assets/lines/ycouloir_20220129.jpeg"]
+                },
+                {
+                    "name": "Slot Couloir",
+                    "area": "Washington Cascades",
+                    "state": "Washington",
+                    "style": "Couloir",
+                    "lat": 47.45895,
+                    "lon": -121.41673
+                },
+                {
+                    "name": "San Gorgonio Peak",
+                    "area": "San Bernardino Mountains",
+                    "state": "California",
+                    "style": "Peak",
+                    "lat": 34.10214,
+                    "lon": -116.83288
+                },
+                {
+                    "name": "Glacier Peak",
+                    "area": "Glacier Peak Wilderness",
+                    "state": "Washington",
+                    "style": "Peak",
+                    "lat": 48.11151,
+                    "lon": -121.11298
+                },
+                {
+                    "name": "Charlton Peak",
+                    "area": "San Bernardino Mountains",
+                    "state": "California",
+                    "style": "Couloir",
+                    "date": "May 12, 2022",
+                    "lat": 34.11491,
+                    "lon": -116.85427,
+                    "images": ["assets/lines/charltonpk_dollarcouloir_20220512.jpeg"]
+                },
+                {
+                    "name": "Grandview Peak",
+                    "area": "Wasatch Range",
+                    "state": "Utah",
+                    "style": "Peak",
+                    "date": "April 30, 2022",
+                    "lat": 40.85203,
+                    "lon": -111.752,
+                    "images": ["assets/lines/grandview_peak_20220430.jpeg"]
+                },
+                {
+                    "name": "Mount Baldy",
+                    "area": "Lone Peak Wilderness",
+                    "state": "Utah",
+                    "style": "Couloir",
+                    "date": "May 3, 2022",
+                    "lat": 40.56922,
+                    "lon": -111.63947,
+                    "images": ["assets/lines/mtbaldy_mainchute_20220503.jpeg"]
+                },
+                {
+                    "name": "Mt. Tukuhnikivatz",
+                    "area": "La Sal Mountains",
+                    "state": "Utah",
+                    "style": "Peak",
+                    "date": "April 29, 2023",
+                    "lat": 38.43941,
+                    "lon": -109.25959,
+                    "images": ["assets/lines/mttukuhnikivatz_20230429/tuk1.jpeg", "assets/lines/mttukuhnikivatz_20230429/tuk2.jpeg", "assets/lines/mttukuhnikivatz_20230429/tuk3.jpeg"]
+                },
+                {
+                    "name": "Pilot Peak",
+                    "area": "Ruby Mountains",
+                    "state": "Nevada",
+                    "style": "Peak",
+                    "date": "March 19, 2023",
+                    "lat": 41.02112,
+                    "lon": -114.07737,
+                    "images": ["assets/lines/pilotpk_20230319/pilotpk1.jpeg", "assets/lines/pilotpk_20230319/pilotpk2.jpeg", "assets/lines/pilotpk_20230319/pilotpk3.jpeg"]
+                }
+            ]
+        </script>
+        <script>
+            (function () {
+                const dataEl = document.getElementById('ski-lines-data');
+                const listEl = document.getElementById('ski-line-list');
+                const mapEl = document.getElementById('ski-leaflet-map');
+                const fallbackMapEl = document.getElementById('ski-fallback-map');
+                const fallbackMarkersEl = document.getElementById('ski-fallback-markers');
+                const galleryEl = document.getElementById('ski-lines-gallery');
+                const captionEl = document.getElementById('ski-map-caption');
+                const totalEl = document.getElementById('ski-lines-total');
+                const statesEl = document.getElementById('ski-lines-states');
+                const couloirsEl = document.getElementById('ski-lines-couloirs');
+                const progressEl = document.getElementById('ski-progress-fill');
+
+                if (!dataEl || !listEl || !fallbackMapEl || !fallbackMarkersEl) return;
+
+                let skiLines = [];
+                try {
+                    skiLines = JSON.parse(dataEl.textContent);
+                } catch (error) {
+                    return;
+                }
+
+                if (!Array.isArray(skiLines) || skiLines.length === 0) return;
+
+                // Sort lines by date (newest first), with undated at bottom.
+                // This must happen before map/list build so indexes stay aligned.
+                skiLines.sort((a, b) => {
+                    const aHasDate = a.date && a.date.trim();
+                    const bHasDate = b.date && b.date.trim();
+
+                    if (aHasDate && bHasDate) {
+                        const aDate = new Date(a.date);
+                        const bDate = new Date(b.date);
+                        return bDate - aDate;
+                    }
+
+                    if (bHasDate) return 1;
+                    if (aHasDate) return -1;
+                    return 0;
+                });
+
+                let map = null;
+                let usedFallback = false;
+                const markers = []; // Store Leaflet markers for state updates
+                
+                // Try to initialize Leaflet map with basemap
+                function initLeafletMap() {
+                    if (typeof L === 'undefined' || !mapEl) return false;
+
+                    try {
+                        map = L.map(mapEl, {
+                            zoomControl: true,
+                            scrollWheelZoom: true,
+                            minZoom: 3,
+                            maxZoom: 14
+                        });
+
+                        const topoLayer = L.tileLayer(
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                            {
+                                attribution: 'Tiles &copy; Esri'
+                            }
+                        );
+
+                        const esriTopoLayer = L.tileLayer(
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+                            {
+                                attribution: 'Tiles &copy; Esri'
+                            }
+                        );
+
+                        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; OpenStreetMap contributors'
+                        });
+
+                        topoLayer.addTo(map);
+
+                        let switchedToEsri = false;
+                        let switchedToOsm = false;
+                        let hasLoadedAnyTile = false;
+
+                        topoLayer.on('tileload', () => { hasLoadedAnyTile = true; });
+                        esriTopoLayer.on('tileload', () => { hasLoadedAnyTile = true; });
+                        osmLayer.on('tileload', () => { hasLoadedAnyTile = true; });
+
+                        topoLayer.on('tileerror', () => {
+                            if (switchedToEsri) return;
+                            switchedToEsri = true;
+                            map.removeLayer(topoLayer);
+                            esriTopoLayer.addTo(map);
+                        });
+
+                        esriTopoLayer.on('tileerror', () => {
+                            if (switchedToOsm) return;
+                            switchedToOsm = true;
+                            if (map.hasLayer(esriTopoLayer)) map.removeLayer(esriTopoLayer);
+                            osmLayer.addTo(map);
+                        });
+
+                        const latLngs = skiLines.map(line => [line.lat, line.lon]);
+                        const bounds = L.latLngBounds(latLngs);
+                        map.fitBounds(bounds.pad(0.35));
+                        setTimeout(() => map.invalidateSize(), 200);
+
+                        skiLines.forEach((line, index) => {
+                            const dotEl = document.createElement('div');
+                            dotEl.className = 'ski-map-dot';
+
+                            const icon = L.divIcon({
+                                className: '',
+                                html: dotEl.outerHTML,
+                                iconSize: [18, 18],
+                                iconAnchor: [9, 9]
+                            });
+
+                            const marker = L.marker([line.lat, line.lon], { icon }).addTo(map);
+                            marker.bindPopup(`<strong>${line.name}</strong>`);
+                            marker.on('click', () => setActive(index));
+
+                            const markerElement = marker.getElement();
+                            if (markerElement) {
+                                const markerDot = markerElement.querySelector('.ski-map-dot');
+                                if (markerDot) {
+                                    markerDot.addEventListener('mouseenter', () => setActive(index));
+                                    markerDot.addEventListener('click', () => setActive(index));
+                                }
+                            }
+
+                            markers.push({ marker, element: markerElement });
+                        });
+
+                        mapEl.classList.remove('is-hidden');
+                        fallbackMapEl.classList.remove('is-visible');
+
+                        // Only fall back to SVG if absolutely no provider ever loads a tile.
+                        setTimeout(() => {
+                            if (!hasLoadedAnyTile) {
+                                useFallback();
+                            }
+                        }, 8000);
+
+                        return true;
+                    } catch (error) {
+                        if (map) map.remove();
+                        map = null;
+                        return false;
+                    }
+                }
+
+                function useFallback() {
+                    usedFallback = true;
+                    if (map) map.remove();
+                    map = null;
+                    if (mapEl) mapEl.classList.add('is-hidden');
+                    fallbackMapEl.classList.add('is-visible');
+                    buildFallbackMarkers();
+                    setActive(0);
+                }
+
+                // Stats
+                if (totalEl) totalEl.textContent = String(skiLines.length);
+                if (statesEl) statesEl.textContent = String(new Set(skiLines.map(line => line.state)).size);
+                if (couloirsEl) couloirsEl.textContent = String(skiLines.filter(line => line.style === 'Couloir').length);
+                if (progressEl) progressEl.style.width = '100%';
+
+                // Build fallback SVG markers
+                function buildFallbackMarkers() {
+                    fallbackMarkersEl.innerHTML = '';
+                    const svgNs = 'http://www.w3.org/2000/svg';
+                    const bounds = { width: 620, height: 430, paddingX: 80, paddingY: 40, west: -125, east: -110, south: 32, north: 49.5 };
+
+                    function projectPoint(lat, lon) {
+                        const usableWidth = bounds.width - bounds.paddingX * 2;
+                        const usableHeight = bounds.height - bounds.paddingY * 2;
+                        return {
+                            x: bounds.paddingX + ((lon - bounds.west) / (bounds.east - bounds.west)) * usableWidth,
+                            y: bounds.paddingY + (1 - (lat - bounds.south) / (bounds.north - bounds.south)) * usableHeight
+                        };
+                    }
+
+                    skiLines.forEach((line, index) => {
+                        const point = projectPoint(line.lat, line.lon);
+                        const marker = document.createElementNS(svgNs, 'g');
+                        marker.setAttribute('class', 'fallback-marker');
+                        marker.setAttribute('transform', `translate(${point.x.toFixed(1)} ${point.y.toFixed(1)})`);
+                        marker.setAttribute('tabindex', '0');
+                        marker.setAttribute('role', 'button');
+                        marker.setAttribute('aria-label', `${line.name}, ${line.area}, ${line.state}`);
+                        marker.innerHTML = `<circle class="fallback-marker-ring" r="16"></circle><circle class="fallback-marker-dot" r="6.5"></circle><text class="fallback-marker-label" y="1">${index + 1}</text>`;
+                        marker.addEventListener('mouseenter', () => setActive(index));
+                        marker.addEventListener('click', () => setActive(index));
+                        fallbackMarkersEl.appendChild(marker);
+                    });
+                }
+
+                // Try Leaflet first, then fall back to SVG
+                function initAndSetup() {
+                    if (!initLeafletMap()) {
+                        useFallback();
+                    }
+                }
+
+                // Wait for Leaflet to load before initializing.
+                if (typeof L !== 'undefined') {
+                    initAndSetup();
+                } else {
+                    const checkLeaflet = setInterval(() => {
+                        if (typeof L !== 'undefined') {
+                            clearInterval(checkLeaflet);
+                            clearTimeout(leafletLoadTimeout);
+                            initAndSetup();
+                        }
+                    }, 100);
+
+                    // Try a second CDN, then fall back to SVG so map never stays blank.
+                    const leafletLoadTimeout = setTimeout(() => {
+                        clearInterval(checkLeaflet);
+                        const fallbackScript = document.createElement('script');
+                        fallbackScript.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+                        fallbackScript.onload = () => initAndSetup();
+                        fallbackScript.onerror = () => useFallback();
+                        document.head.appendChild(fallbackScript);
+                    }, 2500);
+                }
+
+                // Render Gallery
+                function renderGallery(line) {
+                    if (!galleryEl) return;
+                    galleryEl.innerHTML = '';
+
+                    if (!line.images || !Array.isArray(line.images) || line.images.length === 0) {
+                        const empty = document.createElement('div');
+                        empty.className = 'card';
+                        empty.innerHTML = `<p>No photos added yet for ${line.name}.</p>`;
+                        galleryEl.appendChild(empty);
+                        return;
+                    }
+
+                    line.images.forEach((src) => {
+                        const item = document.createElement('div');
+                        item.className = 'gallery-item reveal in';
+                        item.innerHTML = `
+                            <img src="${src}" alt="${line.name}" class="gallery-image" />
+                            <p style="margin-top: 16px; font-size: 14px; color: var(--muted);">${line.area}, ${line.state}</p>
+                        `;
+                        galleryEl.appendChild(item);
+                    });
+                }
+
+                // Set Active Line
+                const listNodes = [];
+                function setActive(index) {
+                    listNodes.forEach((node, i) => node.classList.toggle('is-active', i === index));
+                    
+                    // Update Leaflet markers
+                    markers.forEach((m, i) => {
+                        if (m.element) {
+                            const dot = m.element.querySelector('.ski-map-dot');
+                            if (dot) dot.classList.toggle('is-active', i === index);
+                        }
+                        if (i === index && m.marker) {
+                            m.marker.openPopup();
+                        }
+                    });
+
+                    const line = skiLines[index];
+                    if (!line) return;
+
+                    if (captionEl) {
+                        const dateSuffix = line.date ? ` - ${line.date}` : '';
+                        captionEl.textContent = `${line.name} - ${line.area}, ${line.state} - ${line.style}${dateSuffix}`;
+                    }
+                    renderGallery(line);
+                }
+
+                // Build List
+                listEl.innerHTML = '';
+                skiLines.forEach((line, index) => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'ski-line-item';
+                    item.innerHTML = `
+                        <div class="ski-line-item-top">
+                            <div>
+                                <p class="ski-line-item-name">${line.name}</p>
+                                <span class="ski-line-meta">${line.area}, ${line.state}</span>
+                            </div>
+                            <span class="ski-line-check">[x]</span>
+                        </div>
+                        <span class="ski-line-style">${line.style}</span>
+                        ${line.date ? `<span class="ski-line-date">${line.date}</span>` : ''}
+                    `;
+                    item.addEventListener('mouseenter', () => setActive(index));
+                    item.addEventListener('focus', () => setActive(index));
+                    item.addEventListener('click', () => setActive(index));
+                    listEl.appendChild(item);
+                    listNodes.push(item);
+                });
+
+                setActive(0);
+            })();
+        </script>
         <script>
             // Email reveal functionality for adventures page
             const emailBtn = document.getElementById('email-btn-adventures');

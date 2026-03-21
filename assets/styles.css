@@ -145,6 +145,490 @@ a:hover { text-decoration: underline; }
   .gallery-image { height: 200px; }
 }
 
+/* Adventures Ski Lines */
+.ski-lines-board {
+  margin-top: 40px;
+  padding: 40px 0;
+  border-top: 1px solid rgba(123, 163, 208, 0.2);
+  border-bottom: 1px solid rgba(123, 163, 208, 0.2);
+  background:
+    radial-gradient(circle at top left, rgba(74, 144, 226, 0.24), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+    var(--bg-alt);
+  box-shadow: 0 16px 40px -24px var(--shadow);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.ski-lines-wrapper {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ski-lines-intro {
+  max-width: 720px;
+}
+
+.ski-lines-kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ski-lines-board h2 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.ski-lines-description {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.ski-lines-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.ski-line-stat {
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(9, 21, 37, 0.55);
+  border: 1px solid rgba(123, 163, 208, 0.12);
+}
+
+.ski-line-stat strong {
+  display: block;
+  font-size: 28px;
+  color: var(--text);
+}
+
+.ski-line-stat span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ski-lines-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr) minmax(280px, 0.8fr);
+  gap: 24px;
+  margin-top: 28px;
+  align-items: stretch;
+}
+
+.ski-map-card,
+.ski-list-card,
+.ski-photos-card {
+  min-height: 100%;
+  padding: 20px;
+  border-radius: 20px;
+  background: rgba(9, 21, 37, 0.68);
+  border: 1px solid rgba(123, 163, 208, 0.12);
+}
+
+#ski-lines-gallery.gallery {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 16px;
+  max-height: 430px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+#ski-lines-gallery .gallery-image {
+  height: 240px;
+}
+
+.ski-map-meta,
+.ski-list-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ski-map-meta span,
+.ski-list-header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ski-list-header h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.ski-leaflet-map {
+  margin-top: 16px;
+  height: 430px;
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 163, 208, 0.18);
+  overflow: hidden;
+}
+
+.ski-leaflet-map.is-hidden {
+  display: none;
+}
+
+.ski-fallback-map {
+  display: none;
+  margin-top: 16px;
+  width: 100%;
+  height: 430px;
+  border-radius: 16px;
+  border: 1px solid rgba(123, 163, 208, 0.18);
+}
+
+.ski-fallback-map.is-visible {
+  display: block;
+}
+
+.fallback-map-grid line {
+  stroke: rgba(123, 163, 208, 0.12);
+  stroke-width: 1;
+  stroke-dasharray: 6 10;
+}
+
+.fallback-map-terrain path {
+  fill: none;
+  stroke: rgba(217, 236, 255, 0.2);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.fallback-map-labels text {
+  fill: rgba(255, 255, 255, 0.38);
+  font-size: 16px;
+  letter-spacing: 0.2em;
+}
+
+.fallback-marker {
+  cursor: pointer;
+}
+
+.fallback-marker-ring {
+  fill: rgba(74, 144, 226, 0.18);
+  stroke: rgba(212, 236, 255, 0.4);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 180ms ease, fill 180ms ease, stroke 180ms ease;
+}
+
+.fallback-marker-dot {
+  fill: #d4ecff;
+  stroke: #4a90e2;
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 180ms ease, fill 180ms ease;
+}
+
+.fallback-marker-label {
+  fill: var(--text);
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.fallback-marker.is-active .fallback-marker-ring,
+.fallback-marker:hover .fallback-marker-ring,
+.fallback-marker:focus .fallback-marker-ring {
+  fill: rgba(212, 236, 255, 0.22);
+  stroke: rgba(212, 236, 255, 0.82);
+  transform: scale(1.18);
+}
+
+.fallback-marker.is-active .fallback-marker-dot,
+.fallback-marker:hover .fallback-marker-dot,
+.fallback-marker:focus .fallback-marker-dot {
+  fill: #ffffff;
+  transform: scale(1.22);
+}
+
+.ski-leaflet-map .leaflet-tile-pane {
+  filter: saturate(0.82) brightness(0.92) contrast(1.05);
+}
+
+.ski-leaflet-map .leaflet-control-attribution,
+.ski-leaflet-map .leaflet-control-zoom a {
+  background: rgba(9, 21, 37, 0.82);
+  color: var(--text);
+  border-color: rgba(123, 163, 208, 0.24);
+}
+
+.ski-map-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid #e6f2ff;
+  background: #2f77cb;
+  box-shadow: 0 0 0 5px rgba(47, 119, 203, 0.24);
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.ski-map-dot.is-active {
+  background: #ffffff;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.3);
+  transform: scale(1.18);
+}
+
+.ski-map-popup {
+  font-family: var(--font-mono);
+  color: #102035;
+  line-height: 1.35;
+}
+
+.ski-map-caption {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.ski-progress {
+  height: 10px;
+  margin-top: 16px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ski-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #7ba3d0, #4a90e2 60%, #d4ecff);
+  transition: width 400ms ease;
+}
+
+.ski-line-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.ski-line-item {
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(123, 163, 208, 0.12);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.ski-line-item:hover,
+.ski-line-item:focus-visible,
+.ski-line-item.is-active {
+  transform: translateY(-2px);
+  border-color: rgba(74, 144, 226, 0.75);
+  background: rgba(74, 144, 226, 0.12);
+  box-shadow: 0 16px 30px -24px rgba(74, 144, 226, 0.95);
+  outline: none;
+}
+
+.ski-line-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.ski-line-item-name {
+  margin: 0;
+  font-size: 16px;
+}
+
+.ski-line-check {
+  flex-shrink: 0;
+  color: #d4ecff;
+  font-size: 13px;
+}
+
+.ski-line-meta,
+.ski-line-style {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ski-line-style {
+  color: #d4ecff;
+}
+
+.ski-line-date {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 980px) {
+  .ski-lines-board {
+    padding: 24px 0;
+  }
+
+  .ski-lines-wrapper {
+    padding: 0 16px;
+  }
+
+  .ski-lines-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ski-lines-board {
+    padding: 16px 0;
+  }
+
+  .ski-lines-wrapper {
+    padding: 0 12px;
+  }
+
+  .ski-lines-layout {
+    padding: 0;
+  }
+
+
+  .ski-lines-board h2 {
+    font-size: 24px;
+  }
+
+  .ski-lines-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ski-line-stat {
+    padding: 14px;
+  }
+
+  .ski-line-stat strong {
+    font-size: 24px;
+  }
+
+  .ski-map-card,
+  .ski-list-card,
+  .ski-photos-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .ski-map-meta,
+  .ski-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ski-leaflet-map,
+  .ski-fallback-map {
+    height: 300px;
+    margin-top: 12px;
+  }
+
+  .ski-line-list {
+    max-height: 250px;
+  }
+
+  .ski-line-item {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .ski-line-item-name {
+    font-size: 14px;
+  }
+
+  .ski-list-header h3 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ski-lines-board {
+    padding: 10px 0;
+  }
+
+  .ski-lines-wrapper {
+    padding: 0 8px;
+  }
+
+  .ski-lines-layout {
+    padding: 0;
+  }
+
+  .ski-lines-board h2 {
+    font-size: 20px;
+  }
+
+  .ski-lines-intro {
+    max-width: 100%;
+  }
+
+  .ski-lines-description {
+    font-size: 12px;
+  }
+
+  .ski-line-stat {
+    padding: 12px;
+  }
+
+  .ski-line-stat strong {
+    font-size: 20px;
+  }
+
+  .ski-map-card,
+  .ski-list-card,
+  .ski-photos-card {
+    padding: 12px;
+  }
+
+  .ski-leaflet-map,
+  .ski-fallback-map {
+    height: 250px;
+  }
+
+  .ski-line-item {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .ski-line-item-name {
+    font-size: 13px;
+  }
+
+  .ski-list-header h3 {
+    font-size: 16px;
+  }
+
+  .ski-map-meta span,
+  .ski-list-header p {
+    font-size: 11px;
+  }
+}
+
 /* Loader */
 #loader {
   position: fixed;
