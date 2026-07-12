@@ -94,14 +94,6 @@
         </script>
     </head>
     <body>
-        <div id="loader" class="loader">
-            <div class="loader-content">
-                <div class="typing-container">
-                    <span id="typing-text"></span><span class="cursor"></span>
-                </div>
-            </div>
-        </div>
-
         <div class="banner">
             <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
         </div>
@@ -113,12 +105,11 @@
                     </a>
                 </div>
                 <nav class="nav-links">
-                    <a href="#about">About</a>
-                    <a href="#services">Services</a>
-                    <a href="#experience">Experience</a>
-                    <a href="#projects">Projects</a>
-                    <a href="#skills">Skills</a>
+                    <a href="#expertise">Expertise</a>
+                    <a href="#credentials">Credentials</a>
+                    <a href="#consulting">Consulting</a>
                     <a href="#contact">Contact</a>
+                    <a href="cv.html">CV</a>
                     <a href="adventures.html">Adventures</a>
                 </nav>
                 <button class="burger" aria-label="Toggle Navigation">Menu</button>
@@ -126,244 +117,74 @@
         </header>
 
         <main>
-            <section class="section hero" id="home">
+            <section class="section hero simple-hero" id="home">
                 <div class="container">
                     <div class="hero-content">
                         <div>
-                            <h2 class="reveal"><span id="hero-typing-text"></span><span class="cursor-small"></span></h2>
+                            <p class="kicker reveal">Environmental Data · Hydrometeorology · Science Education</p>
                             <h1 class="reveal">Hi, I'm Clinton Alden.</h1>
-                            <p class="reveal" id="summary">I help organizations understand and leverage hydrometeorological data. With a background in mountain hydrology and atmospheric science research, I deliver data analysis solutions that support weather forecasting, water resource planning, and data-driven decision making.</p>
+                            <p class="reveal" id="summary">I help businesses and organizations understand environmental data so they can deliver high-quality products to their clients and make informed decisions.</p>
+                            <p class="reveal">I'm an atmospheric scientist and hydrologist studying weather, water, and climate, with a focus on the Western United States.</p>
                             <div class="cta">
-                            <a class="btn primary" href="#services">View Services</a>
-                            <a class="btn" href="#contact">Start a Project</a>
-                            <a class="btn" href="cv.html" style="opacity: 0.7;">Research Background</a>
-                        </div>
+                                <a class="btn primary" href="#consulting">Hydrometeorological Consulting</a>
+                                <a class="btn" href="cv.html">View CV</a>
+                                <a class="btn" href="#contact">Contact</a>
+                            </div>
                         </div>
                         <img src="assets/headshot.jpeg" alt="Clinton Alden" class="headshot headshot-hero" />
                     </div>
                 </div>
             </section>
 
-            <section class="section" id="about">
+            <section class="section" id="expertise">
                 <div class="container">
-                    <h2>About</h2>
-                    <p class="subtitle">Consulting + Research Background</p>
-                    <p class="reveal">I combine deep expertise in hydrometeorological research with practical consulting experience. My background spans mountain hydrology, meteorology, and snow science—skills I apply to solve real-world data analysis challenges for clients. I work with organizations to extract insights from complex environmental datasets and translate technical findings into actionable intelligence.</p>
-                    <p class="reveal" style="margin-top: 16px;"><a href="#services">Explore my services</a> or <a href="#experience">view my background</a> to learn more.</p>
-                </div>
-            </section>
-
-            <section class="section" id="services">
-                <div class="container">
-                    <h2>Services</h2>
-                    <p class="subtitle">Hydrometeorological data analysis & consulting.</p>
-                    <div class="grid">
-                        <article class="card reveal">
-                            <h3>Hydrologic Data Analysis</h3>
-                            <p>Process and analyze precipitation, snowpack, streamflow, and other hydrologic datasets. Extract patterns and insights to support forecasting, planning, and decision-making.</p>
-                            <div class="tags">
-                                <span class="tag">Data Processing</span>
-                                <span class="tag">Statistical Analysis</span>
-                                <span class="tag">Visualization</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>Snow & Weather Education</h3>
-                            <p>AIARE-certified instructor delivering snow and weather education to mountain professionals and recreationalists. Experience teaching avalanche professionals, backcountry users, and general audiences from graduate level to awareness-focused training.</p>
-                            <div class="tags">
-                                <span class="tag">AIARE Certified</span>
-                                <span class="tag">Avalanche Training</span>
-                                <span class="tag">Science Education</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>Science Communication & Media Outreach</h3>
-                            <p>Translate complex hydrometeorological science for general audiences. Passionate about disseminating science nuances, clarifying buzzwords, and making technical topics accessible and engaging to the public.</p>
-                            <div class="tags">
-                                <span class="tag">Science Communication</span>
-                                <span class="tag">Public Outreach</span>
-                                <span class="tag">Content Creation</span>
-                            </div>
-                        </article>
+                    <h2>Expertise</h2>
+                    <p class="subtitle">Research, forecasting, education, and consulting experience.</p>
+                    <div class="expertise-list reveal" aria-label="Areas of expertise">
+                        <span class="expertise-pill">Mountain hydrology</span>
+                        <span class="expertise-pill">Avalanche education</span>
+                        <span class="expertise-pill">Satellite remote sensing</span>
+                        <span class="expertise-pill">Atmospheric sciences</span>
+                        <span class="expertise-pill">Weather forecasting</span>
+                        <span class="expertise-pill">Science communication</span>
+                        <span class="expertise-pill">Environmental consulting</span>
                     </div>
-                    <p class="reveal" style="margin-top: 32px; text-align: center; font-size: 24px;"><strong>Have a hydrometeorological challenge?</strong> <a href="#contact">Get in touch</a> to discuss your project.</p>
                 </div>
             </section>
 
-            <section class="section" id="why-work">
+            <section class="section" id="credentials">
                 <div class="container">
-                    <h2>Why Work With Me</h2>
-                    <p class="subtitle">Consulting that blends research rigor with practical outcomes.</p>
-                    <div class="grid">
-                        <article class="card reveal">
-                            <h3>Research-Backed Insight</h3>
-                            <p>Graduate-level training in mountain hydrology and atmospheric science, applied directly to real-world consulting questions.</p>
-                            <div class="tags">
-                                <span class="tag">UW Research</span>
-                                <span class="tag">Research-Based</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>Clear, Actionable Outputs</h3>
-                            <p>Technical analysis translated into concise reports, visuals, and recommendations your team can use immediately.</p>
-                            <div class="tags">
-                                <span class="tag">Decision Support</span>
-                                <span class="tag">Communication</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>Flexible Engagements</h3>
-                            <p>Project-based consulting designed to fit your scope, timeline, and budget—ideal for agencies, nonprofits, and industry.</p>
-                            <div class="tags">
-                                <span class="tag">Project-Based</span>
-                                <span class="tag">Collaborative</span>
-                            </div>
-                        </article>
+                    <h2>Background</h2>
+                    <p class="subtitle">Selected background. Full details are available on my <a href="cv.html">CV</a>.</p>
+                    <div class="bio-copy reveal">
+                        <p>My research background includes degrees in Atmospheric Science and Civil Engineering/Hydrology, and I am working toward a PhD in Hydrology at the University of Washington.</p>
+                        <p>Through past work, I've forecast winter weather and mountain meteorology for both general public recreationists and water resource applications through a public blog and work at the Center for Western Weather and Water Extremes at UC San Diego, respectively.</p>
+                        <p>Beyond research, I have extensive experience communicating science via news media and as an avalanche educator. In 2026, I was recognized as the Avalanche Awareness Instructor of the Year by the Northwest Avalanche Center and won the David Miller Prize for Best Student Poster at the joint Western/Eastern Snow Conference for my research and communication skills.</p>
                     </div>
-                    <p class="reveal" style="margin-top: 24px; text-align: center;">Ready to discuss your goals? <a href="#contact">Let’s talk</a>.</p>
                 </div>
             </section>
 
-            <section class="section" id="trust">
+            <section class="section" id="consulting">
                 <div class="container">
-                    <h2>Credentials & Trust</h2>
-                    <p class="subtitle">Signals of credibility for partners and clients.</p>
-                    <div class="grid">
+                    <h2>Hydrometeorological Consulting</h2>
+                    <p class="subtitle">Technical support for teams working with weather, snow, and water data.</p>
+                    <div class="consulting-layout">
+                        <div class="consulting-copy reveal">
+                            <p>I'm available for project-based consulting, especially involving hydrometeorological data analysis and science education.</p>
+                            <p>Through Clinton Alden Consulting, my expertise helps guide businesses and organizations to best leverage environmental datasets for many purposes.</p>
+                        </div>
                         <article class="card reveal">
-                            <h3>University of Washington</h3>
-                            <p>PhD student in Civil & Environmental Engineering with a focus on mountain hydrology.</p>
+                            <h3>Current Focus</h3>
+                            <ul class="plain-list">
+                                <li>Hydrometeorological data analysis</li>
+                                <li>Science education</li>
+                            </ul>
                             <div class="tags">
-                                <span class="tag">UW Research</span>
-                                <span class="tag">Graduate Research</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>AIARE Certified Instructor</h3>
-                            <p>Qualified to teach avalanche awareness, snow science, and backcountry safety.</p>
-                            <div class="tags">
-                                <span class="tag">AIARE</span>
+                                <span class="tag">Environmental Data</span>
+                                <span class="tag">Hydrometeorology</span>
                                 <span class="tag">Education</span>
                             </div>
                         </article>
-                        <article class="card reveal">
-                            <h3>Media Expertise</h3>
-                            <p>Featured by NPR (KUOW), Seattle Weekly, and The Mercury News for snow and weather commentary.</p>
-                            <div class="tags">
-                                <span class="tag">Press</span>
-                                <span class="tag">Science Communication</span>
-                            </div>
-                        </article>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="media">
-                <div class="container">
-                    <h2>Media & Press</h2>
-                    <p class="subtitle">Science communication and public outreach.</p>
-                    <div class="media-list">
-                        <article class="media-item reveal">
-                            <div class="media-date">11 February 2026</div>
-                            <div class="media-content">
-                                <p class="media-source"><strong>KUOW National Public Radio Seattle</strong></p>
-                                <h3><a href="https://www.kuow.org/stories/the-snow-flaked-on-us-this-year-that-s-got-meteorologists-worried" target="_blank" rel="noopener">"The snow flaked on us this year. That's got meteorologists worried"</a></h3>
-                                <p>Featured commentary on snow dynamics and climate patterns affecting Pacific Northwest weather.</p>
-                            </div>
-                        </article>
-                        <article class="media-item reveal">
-                            <div class="media-date">5 January 2026</div>
-                            <div class="media-content">
-                                <p class="media-source"><strong>Seattle Weekly</strong></p>
-                                <h3><a href="https://www.seattleweekly.com/northwest/flood-science-how-decembers-atmospheric-river-soaked-wa/#:~:text=Seattle%20Weekly-,Flood%20science:%20How%20December's%20atmospheric%20river%20soaked%20Washington,and%20warmer%20air%20to%20Washington." target="_blank" rel="noopener">"Flood science: How December's atmospheric river soaked Washington"</a></h3>
-                                <p>Expert analysis on atmospheric rivers and their impact on regional precipitation and flooding.</p>
-                            </div>
-                        </article>
-                        <article class="media-item reveal">
-                            <div class="media-date">18 January 2024</div>
-                            <div class="media-content">
-                                <p class="media-source"><strong>The Mercury News</strong></p>
-                                <h3><a href="https://www.mercurynews.com/2024/01/18/dangerous-avalanches-linked-to-one-weird-night-and-what-you-need-to-know-to-stay-safe/" target="_blank" rel="noopener">"Dangerous avalanches linked to one weird night - and what you need to know to stay safe"</a></h3>
-                                <p>Commentary on avalanche dynamics and safety education for backcountry recreationalists.</p>
-                            </div>
-                        </article>
-                    </div>
-                    <p class="reveal" style="margin-top: 24px; text-align: center; font-size: 24px;">Interested in media collaboration or expert commentary? <button id="media-email-btn" class="btn" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 0; font-size: inherit; cursor: pointer; text-decoration: underline;" onclick="revealMediaEmail()">Get in touch</button>.</p>
-                </div>
-            </section>
-
-            <section class="section" id="experience">
-                <div class="container">
-                    <h2>Experience & Background</h2>
-                    <p class="subtitle">Research expertise & professional roles.</p>
-                    <div class="timeline" id="experience-list">
-                        <!-- Populated dynamically from assets/data.json -->
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="projects">
-                <div class="container">
-                    <h2>Research & Outreach</h2>
-                    <p class="subtitle">Selected work and contributions.</p>
-                    <div class="grid">
-                        <article class="card reveal">
-                            <h3>Snowpack & Climate Change</h3>
-                            <p>Thesis research on how warming temperatures alter snowpack structure and properties, with implications for avalanche hazard and water resources.</p>
-                            <div class="tags">
-                                <span class="tag">Hydrology</span>
-                                <span class="tag">Field Work</span>
-                                <span class="tag">Modeling</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>Atmospheric Rivers</h3>
-                            <p>Analysis of extreme weather systems using satellite data (MODIS-Terra) and reanalysis products to understand precipitation patterns and impacts on western US water systems.</p>
-                            <div class="tags">
-                                <span class="tag">Remote Sensing</span>
-                                <span class="tag">Python</span>
-                                <span class="tag">ERA5 Data</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3>Avalanche Awareness</h3>
-                            <p>Instructor for public avalanche awareness and safety classes; media outreach on snow science and hazard mitigation.</p>
-                            <div class="tags">
-                                <span class="tag">Teaching</span>
-                                <span class="tag">Outreach</span>
-                                <span class="tag">Science Communication</span>
-                            </div>
-                        </article>
-                        <article class="card reveal">
-                            <h3><a href="https://cascademountainweather.com" target="_blank" rel="noopener">Cascade Mountain Weather</a></h3>
-                            <p>Co-creator of cascademountainweather.com, a weather forecasting and data aggregation platform serving Pacific Northwest ski forecasts with integrated atmospheric and snow data.</p>
-                            <div class="tags">
-                                <span class="tag">Web Platform</span>
-                                <span class="tag">Data Aggregation</span>
-                                <span class="tag">Public Outreach</span>
-                            </div>
-                        </article>
-                    </div>
-                    <p class="reveal" style="margin-top: 24px;"><strong>Explore more:</strong> Check my <a href="cv.html">CV</a> for detailed education, certifications, and publications. <a href="#contact">Contact me</a> for collaboration inquiries.</p>
-                </div>
-            </section>
-
-            <section class="section" id="skills">
-                <div class="container">
-                    <h2>Skills & Tools</h2>
-                    <p class="subtitle">Research, analysis, and science communication.</p>
-                    <div class="grid">
-                        <div class="card reveal">
-                            <h3>Field & Lab</h3>
-                            <p>Snowpack observation, avalanche rescue training (AIARE), field hydrology, weather station data collection</p>
-                        </div>
-                        <div class="card reveal">
-                            <h3>Data & Analysis</h3>
-                            <p>Python, Matlab, satellite remote sensing (MODIS), ERA5 reanalysis, NetCDF, data visualization</p>
-                        </div>
-                        <div class="card reveal">
-                            <h3>Communication</h3>
-                            <p>Technical writing, LaTeX, public teaching, media outreach, weather forecasting for diverse audiences</p>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -371,8 +192,8 @@
             <section class="section" id="contact">
                 <div class="container">
                     <h2>Contact</h2>
-                    <p class="subtitle">Always happy to connect.</p>
-                    <p class="reveal">If you'd like to chat about opportunities or projects, send me a note and I'll get back soon.</p>
+                    <p class="subtitle">For consulting, collaboration, or media inquiries.</p>
+                    <p class="reveal">If you have a hydrometeorological question, a dataset that needs careful interpretation, or a project where snow and weather expertise would help, send me a note.</p>
                     <p class="reveal" id="contact-details">
                         <span id="contact-location"></span>
                     </p>
@@ -389,130 +210,11 @@
             <div class="container">© <span id="year"></span> Clinton Alden</div>
         </footer>
 
-        <script>
-            // Typing loader animation
-            const loaderPhrases = ['Snow Hydrology', 'Mountain Meteorology', 'Science Education', 'Clinton Alden'];
-            let loaderPhraseIndex = 0;
-            let loaderCharIndex = 0;
-            let loaderIsDeleting = false;
-            const typingText = document.getElementById('typing-text');
-            const loader = document.getElementById('loader');
-            
-            function typeLoader() {
-                const currentPhrase = loaderPhrases[loaderPhraseIndex];
-                
-                if (loaderIsDeleting) {
-                    // Delete mode
-                    loaderCharIndex--;
-                    typingText.textContent = currentPhrase.substring(0, loaderCharIndex);
-                    
-                    if (loaderCharIndex === 0) {
-                        loaderIsDeleting = false;
-                        loaderPhraseIndex++;
-                        
-                        // Check if we've typed all phrases
-                        if (loaderPhraseIndex === loaderPhrases.length) {
-                            // Final phrase (Clinton Alden) typed, now hide loader
-                            setTimeout(() => {
-                                loader.classList.add('hidden');
-                            }, 1500);
-                            return;
-                        }
-                    }
-                    
-                    setTimeout(typeLoader, 25);
-                } else {
-                    // Type mode
-                    loaderCharIndex++;
-                    typingText.textContent = currentPhrase.substring(0, loaderCharIndex);
-                    
-                    if (loaderCharIndex === currentPhrase.length) {
-                        // Pause before deleting (but don't delete on final phrase)
-                        if (loaderPhraseIndex < loaderPhrases.length - 1) {
-                            setTimeout(() => {
-                                loaderIsDeleting = true;
-                                typeLoader();
-                            }, 400);
-                        } else {
-                            // Keep final phrase visible
-                            setTimeout(() => {
-                                loader.classList.add('hidden');
-                            }, 1500);
-                        }
-                    } else {
-                        setTimeout(typeLoader, 40);
-                    }
-                }
-            }
-            
-            // Hero section typing animation
-            const heroTypingList = ['Snow Hydrology', 'Mountain Meteorology', 'Scientific Communication', 'Atmospheric Sciences', 'Avalanche Education', 'Public Outreach'];
-            let heroPhrasIndex = 0;
-            let heroCharIndex = 0;
-            let heroIsDeleting = false;
-            const heroTypingText = document.getElementById('hero-typing-text');
-            
-            function typeHero() {
-                const currentPhrase = heroTypingList[heroPhrasIndex];
-                
-                if (heroIsDeleting) {
-                    // Delete mode
-                    heroCharIndex--;
-                    heroTypingText.textContent = currentPhrase.substring(0, heroCharIndex);
-                    
-                    if (heroCharIndex === 0) {
-                        heroIsDeleting = false;
-                        heroPhrasIndex = (heroPhrasIndex + 1) % heroTypingList.length; // Loop indefinitely
-                    }
-                    
-                    setTimeout(typeHero, 50);
-                } else {
-                    // Type mode
-                    heroCharIndex++;
-                    heroTypingText.textContent = currentPhrase.substring(0, heroCharIndex);
-                    
-                    if (heroCharIndex === currentPhrase.length) {
-                        // Pause before deleting
-                        setTimeout(() => {
-                            heroIsDeleting = true;
-                            typeHero();
-                        }, 2000);
-                    } else {
-                        setTimeout(typeHero, 100);
-                    }
-                }
-            }
-            
-            // Start animations
-            document.addEventListener('DOMContentLoaded', () => {
-                typeLoader();
-                typeHero();
-            });
-            
-            // If DOMContentLoaded already fired
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
-                    typeLoader();
-                    typeHero();
-                });
-            } else {
-                typeLoader();
-                typeHero();
-            }
-        </script>
-
         <script src="assets/script.js" defer></script>
         <script>
             function revealConsultingEmail() {
                 const btn = document.getElementById('consulting-email-btn');
                 const email = 'clintonaldenconsulting@gmail.com';
-                btn.innerHTML = `<a href="mailto:${email}" style="color: var(--accent); text-decoration: none;">${email}</a>`;
-                btn.onclick = null;
-            }
-            
-            function revealMediaEmail() {
-                const btn = document.getElementById('media-email-btn');
-                const email = 'cdalden@uw.edu';
                 btn.innerHTML = `<a href="mailto:${email}" style="color: var(--accent); text-decoration: none;">${email}</a>`;
                 btn.onclick = null;
             }
