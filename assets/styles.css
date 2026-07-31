@@ -82,12 +82,26 @@ a:hover { text-decoration: underline; }
 .btn { display: inline-block; padding: 12px 18px; border-radius: 6px; font-family: var(--font-mono); border: 1px solid var(--accent); color: var(--accent); background: transparent; }
 .btn.primary { background: var(--accent-dim); }
 .btn:hover { filter: brightness(1.1); }
+.btn:disabled { opacity: 0.55; cursor: wait; }
 
 /* Cards & Grids */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .card { background: var(--bg-alt); padding: 20px; border-radius: 8px; box-shadow: 0 10px 30px -15px var(--shadow); border: 1px solid rgba(255,255,255,0.06); }
 .card h3 { margin: 0 0 12px; font-size: 18px; }
 .card p { color: var(--muted); }
+.card label { display: block; margin: 16px 0 8px; color: var(--text); font-size: 13px; font-weight: 600; }
+.card select,
+.card input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  font: inherit;
+}
+.card option { color: #0f1f3f; }
 .card .tags { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 .tag { font-family: var(--font-mono); font-size: 12px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 12px; }
 
@@ -151,6 +165,223 @@ a:hover { text-decoration: underline; }
   margin-bottom: 0;
 }
 
+/* Radiosonde Tool */
+.radiosonde-hero {
+  padding-bottom: 24px;
+}
+.radiosonde-hero h1 {
+  margin: 8px 0 12px;
+  font-size: 42px;
+}
+.radiosonde-hero .kicker {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 600;
+}
+.radiosonde-workbench {
+  padding-top: 24px;
+}
+.radiosonde-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.radiosonde-controls,
+.radiosonde-plot {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.radiosonde-controls h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.station-map {
+  width: 100%;
+  height: 250px;
+  margin-top: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  background: #dbe4ea;
+}
+.station-map .leaflet-control-attribution {
+  font-size: 9px;
+}
+.station-map .leaflet-tooltip {
+  border: 0;
+  border-radius: 4px;
+  background: #0f1f3f;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  box-shadow: 0 4px 14px rgba(15,31,63,0.28);
+}
+.preload-summary {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.cycle-picker {
+  margin: 16px 0 0;
+  padding: 0;
+  border: 0;
+}
+.cycle-picker legend {
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cycle-toggle {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.cycle-toggle-button {
+  min-width: 0;
+  min-height: 48px;
+  padding: 5px 3px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 5px;
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+.cycle-toggle-button span,
+.cycle-toggle-button strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cycle-toggle-button span {
+  font-size: 9px;
+}
+.cycle-toggle-button strong {
+  color: var(--text);
+  font-size: 12px;
+}
+.cycle-toggle-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.cycle-toggle-button:disabled {
+  border-color: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+  color: #64748b;
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.cycle-toggle-button:disabled strong {
+  color: #94a3b8;
+}
+.radiosonde-controls .btn {
+  width: 100%;
+  margin-top: 18px;
+  text-align: center;
+}
+.radiosonde-status {
+  min-height: 54px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.radiosonde-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: var(--muted);
+  font-size: 12px;
+}
+.radiosonde-plot-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  background: #ffffff;
+}
+.radiosonde-plot-frame img {
+  display: none;
+  width: 100%;
+  height: auto;
+}
+.radiosonde-plot-frame img.is-visible {
+  display: block;
+}
+.sounding-diagnostics {
+  margin-top: 18px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.sounding-diagnostics h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.sounding-diagnostics dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.sounding-diagnostics dl > div {
+  min-width: 0;
+}
+.sounding-diagnostics .diagnostic-wide {
+  grid-column: span 2;
+}
+.sounding-diagnostics dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sounding-diagnostics dd {
+  margin: 3px 0 0;
+  color: var(--text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+#plot-placeholder {
+  display: none;
+  max-width: 520px;
+  padding: 24px;
+  color: #334155;
+  text-align: center;
+}
+#plot-placeholder.is-visible {
+  display: grid;
+  width: 100%;
+  min-height: 620px;
+  place-items: center;
+}
+.radiosonde-details {
+  margin-top: 16px;
+  color: var(--muted);
+}
+.radiosonde-details summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.radiosonde-details ol {
+  margin: 12px 0 0;
+  padding-left: 24px;
+  font-size: 13px;
+}
+.cycle-ok {
+  color: #9be6c6;
+}
+.cycle-missing {
+  color: var(--muted);
+}
+
 /* Timeline */
 .timeline { border-left: 2px solid var(--accent-dim); padding-left: 24px; }
 .timeline-item { position: relative; margin-bottom: 24px; }
@@ -174,6 +405,7 @@ a:hover { text-decoration: underline; }
   .grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
+  .container { padding-right: 16px; padding-left: 16px; }
   .burger { display: inline-block; }
   .nav-links { display: none; }
   .nav-links.open { display: flex; flex-direction: column; gap: 12px; position: absolute; right: 24px; top: 64px; background: var(--bg-alt); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); }
@@ -181,6 +413,12 @@ a:hover { text-decoration: underline; }
   .hero h2 { font-size: 22px; }
   .grid { grid-template-columns: 1fr; }
   .consulting-layout { grid-template-columns: 1fr; }
+  .radiosonde-layout { grid-template-columns: 1fr; }
+  .radiosonde-controls { padding: 16px; }
+  .radiosonde-hero h1 { font-size: 34px; }
+  #plot-placeholder.is-visible { min-height: 420px; }
+  .sounding-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sounding-diagnostics .diagnostic-wide { grid-column: span 2; }
 }
 
 /* Media Section */

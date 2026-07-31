@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Radiosonde Skew-T — Clinton Alden</title>
+        <meta name="description" content="CONUS observed radiosonde profiles downloaded in bulk and plotted as interactive MetPy skew-T diagrams." />
+        <meta name="author" content="Clinton Alden" />
+        <meta name="canonical" href="https://clintonalden.com/radiosonde.html" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="assets/styles.css?v=20260730-mobile1" />
+        <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon.png" />
+        <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+        <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
+        <script defer src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+        <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="assets/radiosonde.js?v=20260730-conus2" defer></script>
+    </head>
+    <body>
+        <div class="banner">
+            <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
+        </div>
+        <header class="header">
+            <div class="container nav">
+                <div class="logo">
+                    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+                        <img src="assets/favicon.svg" alt="Snowflake logo" class="logo-icon" />
+                    </a>
+                </div>
+                <nav class="nav-links">
+                    <a href="index.html#expertise">Expertise</a>
+                    <a href="index.html#credentials">Credentials</a>
+                    <a href="index.html#consulting">Consulting</a>
+                    <a href="index.html#contact">Contact</a>
+                    <a href="cv.html">CV</a>
+                    <a href="adventures.html">Adventures</a>
+                    <a href="radiosonde.html" class="active">Radiosonde</a>
+                </nav>
+                <button class="burger" aria-label="Toggle Navigation">Menu</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="section radiosonde-hero">
+                <div class="container">
+                    <p class="kicker reveal">Radiosonde Observations</p>
+                    <h1 class="reveal">Skew-T</h1>
+                    <p class="subtitle reveal">Browse CONUS soundings at 6-hour intervals across the past 48 hours, then select a map site to render its skew-T with MetPy.</p>
+                </div>
+            </section>
+
+            <section class="section radiosonde-workbench" aria-labelledby="radiosonde-controls-title">
+                <div class="container radiosonde-layout">
+                    <aside class="radiosonde-controls card reveal">
+                        <h2 id="radiosonde-controls-title">Radiosonde Sites</h2>
+                        <div id="station-map" class="station-map" aria-label="Clickable map of CONUS radiosonde stations"></div>
+                        <p id="preload-summary" class="preload-summary">Loading CONUS profiles...</p>
+
+                        <fieldset class="cycle-picker">
+                            <legend>Times (UTC)</legend>
+                            <div id="cycle-toggle" class="cycle-toggle" aria-label="Sounding cycle"></div>
+                        </fieldset>
+
+                        <label for="station-select">Station</label>
+                        <select id="station-select">
+                            <option value="OAK" selected>Loading CONUS stations...</option>
+                        </select>
+
+                        <button id="refresh-sounding" class="btn primary" type="button">Refresh all sites</button>
+                        <p id="sounding-status" class="radiosonde-status" role="status">Verified OAK 00Z profile: 156 usable levels.</p>
+
+                        <div class="radiosonde-meta">
+                            <span id="selected-cycle">Cycle: 2026-07-31 00Z</span>
+                            <a id="data-source-link" href="https://mesonet.agron.iastate.edu/json/raob.py?ts=202607310000&amp;station=OAK" target="_blank" rel="noopener">IEM RAOB data</a>
+                            <a id="spc-source-link" href="https://www.spc.noaa.gov/exper/archive/events/20260731/soundings/26073100_SNDG/OAK.gif" target="_blank" rel="noopener">SPC comparison</a>
+                        </div>
+                    </aside>
+
+                    <section class="radiosonde-plot reveal" aria-label="Generated skew-T plot">
+                        <div class="radiosonde-plot-frame">
+                            <img id="skewt-output" class="is-visible" src="assets/oak-20260731-00z-skewt.png?v=20260730-matched-parcels" data-station="OAK" data-cycle="202607310000" alt="MetPy skew-T plot for Oakland, California at 00Z on July 31, 2026" />
+                            <div id="plot-placeholder">Refreshing observed sounding data...</div>
+                        </div>
+                        <section id="sounding-diagnostics" class="sounding-diagnostics" aria-labelledby="diagnostics-title" hidden>
+                            <h2 id="diagnostics-title">Sounding Diagnostics</h2>
+                            <dl>
+                                <div>
+                                    <dt>MUCAPE · source</dt>
+                                    <dd data-diagnostic="mucape">—</dd>
+                                </div>
+                                <div>
+                                    <dt>MLCAPE</dt>
+                                    <dd data-diagnostic="mlcape">—</dd>
+                                </div>
+                                <div>
+                                    <dt>SBCAPE</dt>
+                                    <dd data-diagnostic="sbcape">—</dd>
+                                </div>
+                                <div>
+                                    <dt>DCAPE</dt>
+                                    <dd data-diagnostic="dcape">—</dd>
+                                </div>
+                                <div class="diagnostic-wide">
+                                    <dt>Thermal-wind signal</dt>
+                                    <dd data-diagnostic="advection">—</dd>
+                                </div>
+                                <div class="diagnostic-wide">
+                                    <dt>Dendritic growth zone</dt>
+                                    <dd data-diagnostic="dgz">—</dd>
+                                </div>
+                            </dl>
+                        </section>
+                        <details class="radiosonde-details">
+                            <summary>Bulk cycles downloaded</summary>
+                            <ol id="cycle-list"></ol>
+                        </details>
+                    </section>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container">&copy; <span id="year"></span> Clinton Alden</div>
+        </footer>
+
+        <script src="assets/script.js" defer></script>
+    </body>
+</html>
