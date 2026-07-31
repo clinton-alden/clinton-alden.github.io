@@ -64,10 +64,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await loadConusStations();
   populateStationSelect(
-    requestedStation && CONUS_IDS.has(requestedStation) ? requestedStation : 'OAK'
+    requestedStation && CONUS_IDS.has(requestedStation) ? requestedStation : 'SLC'
   );
   state.cycles = recentCycles();
-  state.selectedCycle = state.cycles[0].timestamp;
+  state.selectedCycle = state.cycles.filter(cycle => !cycle.future).reduce(
+    (latest, cycle) => cycle.timestamp > latest ? cycle.timestamp : latest,
+    state.cycles[0].timestamp,
+  );
   renderCycleToggle();
   initStationMap();
   els.refresh.addEventListener('click', refreshAllSites);
@@ -106,12 +109,19 @@ function makeCycle(date) {
 
 function recentCycles() {
   const now = new Date();
-  const top = new Date(now);
-  top.setUTCHours(Math.floor(now.getUTCHours() / 6) * 6, 0, 0, 0);
-
+  const currentUtcDay = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
   const cycles = [];
-  for (let index = 0; index < 8; index += 1) {
-    cycles.push(makeCycle(new Date(top.getTime() - index * 6 * 60 * 60 * 1000)));
+  for (let dayOffset = 0; dayOffset < 3; dayOffset += 1) {
+    const dayStart = currentUtcDay - dayOffset * 24 * 60 * 60 * 1000;
+    [0, 6, 12, 18].forEach(hour => {
+      const cycle = makeCycle(new Date(dayStart + hour * 60 * 60 * 1000));
+      cycle.future = cycle.date > now;
+      cycles.push(cycle);
+    });
   }
   return cycles;
 }
@@ -128,9 +138,9 @@ function selectStation(station) {
   els.stationSelect.value = station;
 
   if (state.profilesByCycle.size && !getCycleProfiles().has(station)) {
-    const newestAvailable = state.cycles.find(cycle =>
-      state.profilesByCycle.get(cycle.timestamp)?.has(station)
-    );
+    const newestAvailable = [...state.cycles]
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .find(cycle => state.profilesByCycle.get(cycle.timestamp)?.has(station));
     if (newestAvailable) state.selectedCycle = newestAvailable.timestamp;
   }
 
@@ -151,8 +161,10 @@ function renderCycleToggle() {
     button.className = 'cycle-toggle-button';
     button.dataset.cycle = cycle.timestamp;
     button.setAttribute('aria-pressed', String(cycle.timestamp === state.selectedCycle));
-    button.disabled = availabilityKnown && !available;
-    button.title = button.disabled
+    button.disabled = cycle.future || (availabilityKnown && !available);
+    button.title = cycle.future
+      ? `${cycle.label} - not yet available`
+      : button.disabled
       ? `${cycle.label} - no ${station} profile`
       : cycle.label;
 
@@ -291,10 +303,12 @@ function renderDownloadedCycles(cycles) {
   els.cycleList.innerHTML = '';
   cycles.forEach(item => {
     const li = document.createElement('li');
-    li.textContent = item.ok
+    li.textContent = item.cycle.future
+      ? `${item.cycle.label} - not yet available`
+      : item.ok
       ? `${item.cycle.label} - ${item.count} CONUS profiles`
       : `${item.cycle.label} - download failed`;
-    li.className = item.ok ? 'cycle-ok' : 'cycle-missing';
+    li.className = item.ok && !item.cycle.future ? 'cycle-ok' : 'cycle-missing';
     els.cycleList.appendChild(li);
   });
 }
@@ -307,6 +321,9 @@ async function preloadConusSoundings(force = false) {
     els.preloadSummary.textContent = `Downloading ${cycles.length} recent sounding cycles...`;
 
     const responses = await Promise.all(cycles.map(async cycle => {
+      if (cycle.future) {
+        return { cycle, data: { profiles: [] }, ok: true };
+      }
       try {
         const data = await fetchJson(`${IEM_RAOB_BASE}?ts=${cycle.timestamp}`);
         return { cycle, data, ok: true };

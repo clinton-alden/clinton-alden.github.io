@@ -17,7 +17,7 @@
         <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
         <script defer src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
         <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script src="assets/radiosonde.js?v=20260730-conus2" defer></script>
+        <script src="assets/radiosonde.js?v=20260730-default-slc" defer></script>
     </head>
     <body>
         <div class="banner">
@@ -48,7 +48,7 @@
                 <div class="container">
                     <p class="kicker reveal">Radiosonde Observations</p>
                     <h1 class="reveal">Skew-T</h1>
-                    <p class="subtitle reveal">Browse CONUS soundings at 6-hour intervals across the past 48 hours, then select a map site to render its skew-T with MetPy.</p>
+                    <p class="subtitle reveal">Browse available 00Z, 06Z, 12Z, and 18Z CONUS soundings from the current UTC day and two preceding days, then select a map site to render its skew-T with MetPy.</p>
                 </div>
             </section>
 
@@ -66,14 +66,14 @@
 
                         <label for="station-select">Station</label>
                         <select id="station-select">
-                            <option value="OAK" selected>Loading CONUS stations...</option>
+                            <option value="SLC" selected>Loading CONUS stations...</option>
                         </select>
 
                         <button id="refresh-sounding" class="btn primary" type="button">Refresh all sites</button>
-                        <p id="sounding-status" class="radiosonde-status" role="status">Verified OAK 00Z profile: 156 usable levels.</p>
+                        <p id="sounding-status" class="radiosonde-status" role="status">Loading three UTC dates...</p>
 
                         <div class="radiosonde-meta">
-                            <span id="selected-cycle">Cycle: 2026-07-31 00Z</span>
+                            <span id="selected-cycle">Cycle: loading</span>
                             <a id="data-source-link" href="https://mesonet.agron.iastate.edu/json/raob.py?ts=202607310000&amp;station=OAK" target="_blank" rel="noopener">IEM RAOB data</a>
                             <a id="spc-source-link" href="https://www.spc.noaa.gov/exper/archive/events/20260731/soundings/26073100_SNDG/OAK.gif" target="_blank" rel="noopener">SPC comparison</a>
                         </div>
@@ -81,8 +81,8 @@
 
                     <section class="radiosonde-plot reveal" aria-label="Generated skew-T plot">
                         <div class="radiosonde-plot-frame">
-                            <img id="skewt-output" class="is-visible" src="assets/oak-20260731-00z-skewt.png?v=20260730-matched-parcels" data-station="OAK" data-cycle="202607310000" alt="MetPy skew-T plot for Oakland, California at 00Z on July 31, 2026" />
-                            <div id="plot-placeholder">Refreshing observed sounding data...</div>
+                            <img id="skewt-output" src="assets/oak-20260731-00z-skewt.png?v=20260730-matched-parcels" data-station="OAK" data-cycle="202607310000" alt="MetPy skew-T plot for Oakland, California at 00Z on July 31, 2026" />
+                            <div id="plot-placeholder" class="is-visible">Loading three UTC dates...</div>
                         </div>
                         <section id="sounding-diagnostics" class="sounding-diagnostics" aria-labelledby="diagnostics-title" hidden>
                             <h2 id="diagnostics-title">Sounding Diagnostics</h2>
