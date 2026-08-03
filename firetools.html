@@ -116,7 +116,7 @@
                             <label for="incident-filter">Display</label>
                             <select id="incident-filter">
                                 <option value="all">All fires</option>
-                                <option value="major">Major fires (>= 1,000 acres)</option>
+                                <option value="major" selected>Major fires (>= 1,000 acres)</option>
                             </select>
                             <label for="incident-state">State</label>
                             <select id="incident-state"><option value="">All states</option></select>
@@ -157,8 +157,13 @@
                                     <option value="column">Vertically integrated smoke</option>
                                 </select>
                                 <label for="smoke-hour">Forecast hour</label>
-                                <input id="smoke-hour" type="range" min="0" max="48" value="0" step="1" disabled />
+                                <div class="smoke-frame-controls">
+                                    <button id="smoke-play" class="smoke-play-button" type="button" disabled aria-label="Play smoke forecast">Play</button>
+                                    <input id="smoke-hour" type="range" min="0" max="48" value="0" step="1" disabled />
+                                </div>
                                 <output id="smoke-hour-label" for="smoke-hour">Forecast data loading on demand.</output>
+                                <label for="smoke-opacity">Opacity <output id="smoke-opacity-label" for="smoke-opacity">68%</output></label>
+                                <input id="smoke-opacity" type="range" min="20" max="100" value="68" step="1" disabled />
                             </details>
                             <p id="smoke-status" class="fire-status">Latest completed 48-hour HRRR Smoke run, refreshed every six hours.</p>
                         </fieldset>

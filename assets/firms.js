@@ -15,6 +15,7 @@ const state = {
   incidentLayer: null,
   smokeOverlay: null,
   smokeManifest: null,
+  smokePlayback: null,
   incidentData: null,
   filteredIncidents: [],
   incidentListRows: [],
@@ -69,6 +70,9 @@ function cacheElements() {
     'smoke-field',
     'smoke-hour',
     'smoke-hour-label',
+    'smoke-play',
+    'smoke-opacity',
+    'smoke-opacity-label',
     'smoke-options',
     'smoke-status',
     'smoke-legend'
@@ -240,10 +244,14 @@ function initControls() {
   els.showSmoke.addEventListener('change', syncSmokeLayer);
   els.smokeField.addEventListener('change', renderSmokeOverlay);
   els.smokeHour.addEventListener('input', renderSmokeOverlay);
+  els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
+  els.smokePlay.addEventListener('click', toggleSmokePlayback);
+  document.addEventListener('keydown', handleSmokeKeyboard, true);
 }
 
 async function syncSmokeLayer() {
   if (!els.showSmoke.checked) {
+    stopSmokePlayback();
     clearSmokeOverlay();
     return;
   }
@@ -261,6 +269,8 @@ async function syncSmokeLayer() {
       els.smokeHour.max = String(lastHour);
       els.smokeHour.disabled = false;
       els.smokeField.disabled = false;
+      els.smokeOpacity.disabled = false;
+      els.smokePlay.disabled = false;
       setSmokeStatus(`Loaded ${state.smokeManifest.model || 'HRRR Smoke'} run ${formatDateTime(state.smokeManifest.run)}.`);
     } catch (error) {
       els.showSmoke.checked = false;
@@ -283,7 +293,7 @@ function renderSmokeOverlay() {
   const hourToken = String(hour).padStart(3, '0');
   const imagePath = field.path.replace('{hour}', hourToken);
   state.smokeOverlay = L.imageOverlay(`assets/live/hrrr-smoke/${imagePath}`, state.smokeManifest.bounds, {
-    opacity: 0.68,
+    opacity: Number(els.smokeOpacity.value) / 100,
     pane: 'smokePane',
     interactive: false
   }).addTo(state.map);
@@ -298,6 +308,51 @@ function clearSmokeOverlay() {
     state.smokeOverlay = null;
   }
   els.smokeLegend.hidden = true;
+}
+
+function updateSmokeOpacity() {
+  els.smokeOpacityLabel.textContent = `${els.smokeOpacity.value}%`;
+  if (state.smokeOverlay) state.smokeOverlay.setOpacity(Number(els.smokeOpacity.value) / 100);
+}
+
+function toggleSmokePlayback() {
+  if (state.smokePlayback) {
+    stopSmokePlayback();
+    return;
+  }
+  state.smokePlayback = window.setInterval(advanceSmokeFrame, 700);
+  els.smokePlay.textContent = 'Pause';
+  els.smokePlay.setAttribute('aria-label', 'Pause smoke forecast');
+}
+
+function stopSmokePlayback() {
+  if (state.smokePlayback) window.clearInterval(state.smokePlayback);
+  state.smokePlayback = null;
+  if (els.smokePlay) {
+    els.smokePlay.textContent = 'Play';
+    els.smokePlay.setAttribute('aria-label', 'Play smoke forecast');
+  }
+}
+
+function advanceSmokeFrame(direction = 1) {
+  if (!els.showSmoke.checked || !state.smokeManifest) return;
+  const minimum = Number(els.smokeHour.min);
+  const maximum = Number(els.smokeHour.max);
+  const next = Number(els.smokeHour.value) + direction;
+  els.smokeHour.value = String(next > maximum ? minimum : next < minimum ? maximum : next);
+  renderSmokeOverlay();
+}
+
+function handleSmokeKeyboard(event) {
+  if (!els.showSmoke?.checked || !state.smokeManifest || event.altKey || event.ctrlKey || event.metaKey) return;
+  if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement?.tagName)) return;
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    advanceSmokeFrame(1);
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    advanceSmokeFrame(-1);
+  }
 }
 
 async function loadCachedFireData() {
