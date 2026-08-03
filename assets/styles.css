@@ -633,6 +633,30 @@ a:hover { text-decoration: underline; }
   font-size: 11px;
   line-height: 1.4;
 }
+.fire-smoke-scale-control {
+  width: 252px;
+  padding: 7px 8px 6px;
+  border: 1px solid rgba(255,255,255,0.28);
+  border-radius: 4px;
+  color: #f8fafc;
+  background: rgba(8, 18, 34, 0.88);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.25;
+}
+.fire-smoke-scale-control strong { display: block; font-size: 11px; }
+.fire-smoke-scale-control > span { color: #cbd5e1; }
+.smoke-scale-colors,
+.smoke-scale-labels {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.smoke-scale-colors { height: 10px; margin-top: 5px; overflow: hidden; border-radius: 2px; }
+.smoke-scale-colors i { display: block; }
+.smoke-scale-labels { margin-top: 3px; color: #e2e8f0; }
+.smoke-scale-labels span { overflow: visible; transform: translateX(-1px); white-space: nowrap; }
+.smoke-scale-labels span:last-child { text-align: right; transform: translateX(0); }
 .incident-fire-icon {
   display: grid;
   place-items: center;

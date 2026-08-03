@@ -16,7 +16,9 @@ const state = {
   smokeOverlay: null,
   smokeManifest: null,
   smokePlayback: null,
+  smokeFrameRequest: 0,
   smokeTimeElement: null,
+  smokeScaleElement: null,
   incidentData: null,
   filteredIncidents: [],
   incidentListRows: [],
@@ -25,7 +27,8 @@ const state = {
   allRows: [],
   visibleRows: [],
   lastCsv: '',
-  lastSources: []
+  lastSources: [],
+  fireMarkerScale: null
 };
 
 const els = {};
@@ -75,8 +78,7 @@ function cacheElements() {
     'smoke-opacity',
     'smoke-opacity-label',
     'smoke-options',
-    'smoke-status',
-    'smoke-legend'
+    'smoke-status'
   ].forEach(id => {
     els[toCamel(id)] = document.getElementById(id);
   });
@@ -119,7 +121,16 @@ function initMap() {
     return state.smokeTimeElement;
   };
   smokeTimeControl.addTo(state.map);
+  const smokeScaleControl = L.control({ position: 'bottomright' });
+  smokeScaleControl.onAdd = () => {
+    state.smokeScaleElement = L.DomUtil.create('div', 'fire-smoke-scale-control');
+    state.smokeScaleElement.hidden = true;
+    L.DomEvent.disableClickPropagation(state.smokeScaleElement);
+    return state.smokeScaleElement;
+  };
+  smokeScaleControl.addTo(state.map);
   state.map.on('moveend', updateBoundsLabel);
+  state.map.on('zoomend', rerenderFireMarkersForZoom);
 }
 
 async function loadIncidents() {
@@ -327,7 +338,6 @@ async function syncSmokeLayer() {
 }
 
 function renderSmokeOverlay() {
-  clearSmokeOverlay();
   if (!els.showSmoke.checked || !state.smokeManifest) return;
 
   const fieldName = els.smokeField.value;
@@ -336,12 +346,22 @@ function renderSmokeOverlay() {
   const hour = Number(els.smokeHour.value);
   const hourToken = String(hour).padStart(3, '0');
   const imagePath = field.path.replace('{hour}', hourToken);
-  state.smokeOverlay = L.imageOverlay(`assets/live/hrrr-smoke/${imagePath}`, state.smokeManifest.bounds, {
-    opacity: Number(els.smokeOpacity.value) / 100,
-    pane: 'smokePane',
-    interactive: false
-  }).addTo(state.map);
-  els.smokeLegend.hidden = false;
+  const imageUrl = `assets/live/hrrr-smoke/${imagePath}`;
+  const requestId = ++state.smokeFrameRequest;
+  const image = new Image();
+  image.onload = () => {
+    if (requestId !== state.smokeFrameRequest || !els.showSmoke.checked) return;
+    const nextOverlay = L.imageOverlay(imageUrl, state.smokeManifest.bounds, {
+      opacity: Number(els.smokeOpacity.value) / 100,
+      pane: 'smokePane',
+      interactive: false
+    }).addTo(state.map);
+    const previousOverlay = state.smokeOverlay;
+    state.smokeOverlay = nextOverlay;
+    if (previousOverlay) previousOverlay.remove();
+  };
+  image.src = imageUrl;
+  renderSmokeScale(field);
   const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
   els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatSmokeTimes(validTime)} | ${field.label} (${field.units})`;
   if (state.smokeTimeElement) {
@@ -351,12 +371,21 @@ function renderSmokeOverlay() {
 }
 
 function clearSmokeOverlay() {
+  state.smokeFrameRequest += 1;
   if (state.smokeOverlay) {
     state.smokeOverlay.remove();
     state.smokeOverlay = null;
   }
-  els.smokeLegend.hidden = true;
   if (state.smokeTimeElement) state.smokeTimeElement.hidden = true;
+  if (state.smokeScaleElement) state.smokeScaleElement.hidden = true;
+}
+
+function renderSmokeScale(field) {
+  if (!state.smokeScaleElement) return;
+  const breaks = field.breaks || [];
+  const colors = ['#fef08a', '#fdba74', '#fb923c', '#ef4444', '#be185d', '#6b21a8'];
+  state.smokeScaleElement.innerHTML = `<strong>${escapeHtml(field.label)}</strong><span>${escapeHtml(field.units)}</span><div class="smoke-scale-colors">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
+  state.smokeScaleElement.hidden = false;
 }
 
 function updateSmokeOpacity() {
@@ -663,8 +692,10 @@ function renderMarkers() {
   state.layer.clearLayers();
   if (!els.showFireData.checked) return;
 
+  const scale = fireMarkerFootprintScale();
+  state.fireMarkerScale = scale;
   state.visibleRows.forEach(row => {
-    const marker = L.rectangle(fireFootprint(row, els.showIncidents.checked ? 1 : 4), {
+    const marker = L.rectangle(fireFootprint(row, scale), {
       stroke: true,
       color: row.daynight === 'N' ? '#f8fafc' : '#3b1d0a',
       weight: 1,
@@ -674,6 +705,20 @@ function renderMarkers() {
     marker.bindPopup(popupHtml(row));
     marker.addTo(state.layer);
   });
+}
+
+function rerenderFireMarkersForZoom() {
+  if (!els.showFireData.checked) return;
+  if (fireMarkerFootprintScale() !== state.fireMarkerScale) renderMarkers();
+}
+
+function fireMarkerFootprintScale() {
+  const baseScale = els.showIncidents.checked ? 1.25 : 4;
+  const zoom = state.map.getZoom();
+  if (zoom <= 4) return baseScale * 2;
+  if (zoom <= 5) return baseScale * 1.5;
+  if (zoom <= 6) return baseScale * 1.2;
+  return baseScale;
 }
 
 function fireFootprint(row, scale = 1) {
