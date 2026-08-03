@@ -77,7 +77,10 @@
             <section class="section fire-workbench" aria-labelledby="fire-controls-title">
                 <div class="fire-shell">
                     <aside class="fire-controls card reveal">
-                        <h2 id="fire-controls-title">Data Layers</h2>
+                        <div class="fire-controls-heading">
+                            <h2 id="fire-controls-title">Data Layers</h2>
+                            <button id="mobile-layers-close" class="mobile-close-button" type="button" aria-label="Close data layers">&times;</button>
+                        </div>
 
                         <fieldset class="fire-fieldset">
                             <legend>Satellite Retrievals</legend>
@@ -219,13 +222,20 @@
                                 <span><i class="fuel-moist"></i>Moist &gt; 12%</span>
                             </div>
                         </div>
-                        <div id="fire-map" class="fire-map"></div>
+                        <div class="fire-map-wrap">
+                            <div class="fire-mobile-map-tools" aria-label="Mobile map controls">
+                                <button id="mobile-layers-toggle" type="button" aria-expanded="false">Layers</button>
+                                <button id="mobile-reset-view" type="button">Reset</button>
+                            </div>
+                            <div id="fire-map" class="fire-map"></div>
+                        </div>
                         <div class="fire-results">
                             <div class="fire-results-header">
                                 <h2>Current Incidents</h2>
                                 <span id="incident-summary">Loading incidents...</span>
                             </div>
                             <ol id="incident-list" class="fire-detection-list"></ol>
+                            <button id="incident-list-toggle" class="mobile-incident-toggle" type="button" hidden>Show all incidents</button>
                         </div>
                     </section>
                 </div>

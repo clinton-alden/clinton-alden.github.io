@@ -438,6 +438,15 @@ a:hover { text-decoration: underline; }
   margin: 0 0 8px;
   font-size: 18px;
 }
+.fire-controls-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mobile-close-button,
+.fire-mobile-map-tools,
+.mobile-incident-toggle { display: none; }
 .fire-controls,
 .fire-map-panel,
 .fire-control-grid > div {
@@ -553,6 +562,7 @@ a:hover { text-decoration: underline; }
 .fire-map-panel {
   min-width: 0;
 }
+.fire-map-wrap { position: relative; }
 .fire-toolbar {
   min-height: 44px;
   margin-bottom: 10px;
@@ -767,7 +777,8 @@ a:hover { text-decoration: underline; }
   .radiosonde-controls { padding: 16px; }
   .radiosonde-hero h1 { font-size: 34px; }
   .fire-shell {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     width: calc(100vw - 32px);
     max-width: calc(100vw - 32px);
     padding-right: 0;
@@ -775,14 +786,92 @@ a:hover { text-decoration: underline; }
   }
   .fire-hero h1 { font-size: 34px; }
   .fire-hero .subtitle { max-width: 32ch; overflow-wrap: anywhere; word-break: normal; }
+  .fire-map-panel { order: 1; }
+  .fire-controls {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1200;
+    max-height: min(78svh, 680px);
+    margin: 0;
+    padding: 16px;
+    overflow-y: auto;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -12px 36px rgba(0,0,0,0.42);
+    transform: translateY(calc(100% + 16px));
+    transition: transform 180ms ease;
+  }
+  .fire-controls.is-mobile-open { transform: translateY(0); }
+  .fire-controls-heading {
+    position: sticky;
+    top: -16px;
+    z-index: 1;
+    margin: -16px -16px 4px;
+    padding: 16px 16px 8px;
+    background: var(--bg-alt);
+  }
+  .mobile-close-button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid rgba(123, 163, 208, 0.45);
+    border-radius: 4px;
+    color: var(--text);
+    background: rgba(255,255,255,0.06);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .fire-mobile-map-tools {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1100;
+    display: grid;
+    gap: 6px;
+  }
+  .fire-mobile-map-tools button {
+    min-width: 72px;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 4px;
+    color: var(--text);
+    background: rgba(8, 18, 34, 0.88);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    font: 600 12px var(--font-mono);
+  }
+  .fire-controls .checkbox-label { min-height: 44px; }
+  .fire-controls .checkbox-label input { width: 20px; min-height: 20px; }
+  .fire-controls select,
+  .fire-controls input[type="date"],
+  .fire-controls .btn,
+  .smoke-play-button { min-height: 44px; }
+  .fire-controls input[type="range"] { min-height: 34px; }
   .fire-control-grid { grid-template-columns: 1fr; }
   .fire-key-row,
   .fire-source-note { align-items: flex-start; flex-direction: column; }
   .fire-source-note span { text-align: left; }
-  .fire-map { height: 540px; }
+  .fire-map { height: clamp(480px, 70svh, 720px); border-radius: 6px; }
   .fire-toolbar,
   .fire-results-header { align-items: flex-start; flex-direction: column; }
   .fire-detection-list { grid-template-columns: 1fr; }
+  .fire-detection-list:not(.is-expanded) li:nth-child(n+6) { display: none; }
+  .mobile-incident-toggle {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 10px;
+    border: 1px solid rgba(123, 163, 208, 0.45);
+    border-radius: 4px;
+    color: var(--accent);
+    background: transparent;
+    font: 600 12px var(--font-mono);
+  }
+  .fire-smoke-time-control { max-width: calc(100vw - 118px); font-size: 10px; }
+  .fire-smoke-scale-control { width: min(220px, calc(100vw - 92px)); }
   #plot-placeholder.is-visible { min-height: 420px; }
   .sounding-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sounding-diagnostics .diagnostic-wide { grid-column: span 2; }

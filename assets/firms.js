@@ -28,7 +28,8 @@ const state = {
   visibleRows: [],
   lastCsv: '',
   lastSources: [],
-  fireMarkerScale: null
+  fireMarkerScale: null,
+  mobileIncidentListExpanded: false
 };
 
 const els = {};
@@ -65,6 +66,10 @@ function cacheElements() {
     'incident-state',
     'incident-summary',
     'incident-list',
+    'incident-list-toggle',
+    'mobile-layers-toggle',
+    'mobile-layers-close',
+    'mobile-reset-view',
     'fuel-moisture-class',
     'fuel-moisture-date',
     'load-fuel-moisture',
@@ -232,6 +237,9 @@ function renderIncidentList() {
     const containment = properties.PercentContained;
     return `<li><button type="button" class="incident-list-button" data-incident-index="${index}"><strong>${escapeHtml(name)}</strong><span>${properties.POOState?.replace('US-', '') || 'US'} | ${formatNumber(acres)} acres${containment !== null && containment !== undefined ? ` | ${formatNumber(containment)}% contained` : ''}</span></button></li>`;
   }).join('');
+  els.incidentList.classList.toggle('is-expanded', state.mobileIncidentListExpanded);
+  els.incidentListToggle.hidden = rows.length <= 5;
+  els.incidentListToggle.textContent = state.mobileIncidentListExpanded ? 'Show fewer incidents' : 'Show all incidents';
 }
 
 function focusIncident(index) {
@@ -260,6 +268,10 @@ function initControls() {
   els.fireDate.max = today;
   els.fuelMoistureDate.max = today;
   els.fuelMoistureDate.value = latestDailyObservation.toISOString().slice(0, 10);
+  if (isMobileViewport()) {
+    els.fireMinFrp.value = '10';
+    els.fireMinFrpLabel.textContent = '10 MW';
+  }
 
   els.fireMinFrp.addEventListener('input', () => {
     els.fireMinFrpLabel.textContent = `${els.fireMinFrp.value} MW`;
@@ -269,6 +281,12 @@ function initControls() {
   els.loadFireData.addEventListener('click', () => loadFireData());
   els.downloadFireCsv.addEventListener('click', downloadCsv);
   els.fireResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
+  els.mobileResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
+  els.mobileLayersToggle.addEventListener('click', () => {
+    const controls = document.querySelector('.fire-controls');
+    setMobileLayersOpen(!controls.classList.contains('is-mobile-open'));
+  });
+  els.mobileLayersClose.addEventListener('click', () => setMobileLayersOpen(false));
   els.showFireData.addEventListener('change', renderMarkers);
   els.showIncidents.addEventListener('change', () => {
     if (state.incidentData) renderIncidents(state.incidentData);
@@ -287,6 +305,11 @@ function initControls() {
     const button = event.target.closest('[data-incident-index]');
     if (button) focusIncident(Number(button.dataset.incidentIndex));
   });
+  els.incidentListToggle.addEventListener('click', () => {
+    state.mobileIncidentListExpanded = !state.mobileIncidentListExpanded;
+    els.incidentList.classList.toggle('is-expanded', state.mobileIncidentListExpanded);
+    els.incidentListToggle.textContent = state.mobileIncidentListExpanded ? 'Show fewer incidents' : 'Show all incidents';
+  });
   els.loadFuelMoisture.addEventListener('click', loadFuelMoisture);
   els.showFuelMoisture.addEventListener('change', () => {
     if (els.showFuelMoisture.checked && state.fuelRows.length === 0) {
@@ -302,6 +325,18 @@ function initControls() {
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
   els.smokePlay.addEventListener('click', toggleSmokePlayback);
   document.addEventListener('keydown', handleSmokeKeyboard, true);
+}
+
+function isMobileViewport() {
+  return window.matchMedia('(max-width: 640px)').matches;
+}
+
+function setMobileLayersOpen(open) {
+  if (!isMobileViewport()) return;
+  const controls = document.querySelector('.fire-controls');
+  controls.classList.toggle('is-mobile-open', open);
+  els.mobileLayersToggle.setAttribute('aria-expanded', String(open));
+  if (open) window.setTimeout(() => state.map.invalidateSize(), 200);
 }
 
 async function syncSmokeLayer() {
@@ -422,6 +457,10 @@ function advanceSmokeFrame(direction = 1) {
 }
 
 function handleSmokeKeyboard(event) {
+  if (event.key === 'Escape' && isMobileViewport()) {
+    setMobileLayersOpen(false);
+    return;
+  }
   if (!els.showSmoke?.checked || !state.smokeManifest || event.altKey || event.ctrlKey || event.metaKey) return;
   if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement?.tagName)) return;
   if (event.key === 'ArrowRight') {
