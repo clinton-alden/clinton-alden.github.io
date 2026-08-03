@@ -1,7 +1,6 @@
 const FIRMS_API_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 const FIRMS_MAP_KEY = 'ba50bf93112cabcd9ed7c7f5e71f631a';
 const FEMS_API_URL = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
-const INCIDENT_API_BASE = 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Wildfires_v1/FeatureServer';
 const WESTERN_US_VIEW = {
   center: [41.8, -115.5],
   zoom: 5,
@@ -12,9 +11,12 @@ const state = {
   map: null,
   layer: null,
   fuelLayer: null,
+  pm25Layer: null,
   incidentLayer: null,
   smokeOverlay: null,
+  smokeWindLayer: null,
   smokeManifest: null,
+  smokeWinds: null,
   smokePlayback: null,
   smokeFrameRequest: 0,
   smokeTimeElement: null,
@@ -23,6 +25,7 @@ const state = {
   filteredIncidents: [],
   incidentListRows: [],
   fuelRows: [],
+  pm25Rows: [],
   fuelDate: '',
   allRows: [],
   visibleRows: [],
@@ -43,7 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
   updateBoundsLabel();
   loadCachedFireData();
   loadIncidents();
-  window.setInterval(loadIncidents, 60 * 60 * 1000);
+  loadPm25();
+  renderActiveLayers();
+  window.setInterval(() => {
+    loadIncidents();
+    loadPm25();
+  }, 60 * 60 * 1000);
 });
 
 function cacheElements() {
@@ -61,6 +69,8 @@ function cacheElements() {
     'fire-updated',
     'show-fire-data',
     'show-fuel-moisture',
+    'show-pm25',
+    'pm25-mode',
     'show-incidents',
     'incident-filter',
     'incident-state',
@@ -70,12 +80,18 @@ function cacheElements() {
     'mobile-layers-toggle',
     'mobile-layers-close',
     'mobile-reset-view',
+    'mobile-clear-overlays',
+    'mobile-incidents-toggle',
+    'mobile-incidents-close',
     'fuel-moisture-class',
     'fuel-moisture-date',
     'load-fuel-moisture',
     'fuel-moisture-status',
     'fuel-moisture-legend',
+    'pm25-status',
+    'pm25-legend',
     'show-smoke',
+    'show-smoke-wind',
     'smoke-field',
     'smoke-hour',
     'smoke-hour-label',
@@ -97,7 +113,13 @@ function toCamel(id) {
 function initMap() {
   state.map = L.map(els.map, {
     preferCanvas: true,
-    zoomControl: true
+    zoomControl: true,
+    zoomAnimation: true,
+    fadeAnimation: true,
+    markerZoomAnimation: true,
+    zoomSnap: 0.25,
+    zoomDelta: 0.25,
+    wheelPxPerZoomLevel: 90
   }).fitBounds(WESTERN_US_VIEW.bounds);
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -109,6 +131,12 @@ function initMap() {
   state.map.getPane('smokePane').style.zIndex = 350;
   state.map.createPane('roadsPane');
   state.map.getPane('roadsPane').style.zIndex = 360;
+  state.map.createPane('firePane');
+  state.map.getPane('firePane').style.zIndex = 410;
+  state.map.createPane('pm25Pane');
+  state.map.getPane('pm25Pane').style.zIndex = 420;
+  state.map.createPane('windPane');
+  state.map.getPane('windPane').style.zIndex = 430;
   L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
     pane: 'roadsPane',
@@ -117,6 +145,8 @@ function initMap() {
 
   state.layer = L.layerGroup().addTo(state.map);
   state.fuelLayer = L.layerGroup().addTo(state.map);
+  state.pm25Layer = L.layerGroup().addTo(state.map);
+  state.smokeWindLayer = L.layerGroup().addTo(state.map);
   state.incidentLayer = L.layerGroup().addTo(state.map);
   const smokeTimeControl = L.control({ position: 'bottomleft' });
   smokeTimeControl.onAdd = () => {
@@ -140,48 +170,12 @@ function initMap() {
 
 async function loadIncidents() {
   try {
-    const [incidents, perimeters] = await Promise.all([0, 1].map(fetchIncidentLayer));
-    renderIncidents({ incidents, perimeters });
+    const response = await fetch('assets/live/incidents.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Incident data unavailable.');
+    renderIncidents(await response.json());
   } catch (error) {
-    try {
-      const response = await fetch('assets/live/incidents.json', { cache: 'no-store' });
-      if (!response.ok) throw error;
-      renderIncidents(await response.json());
-    } catch {
-      console.warn('Incident layer unavailable.', error);
-    }
+    console.warn('Incident layer unavailable.', error);
   }
-}
-
-async function fetchIncidentLayer(layerId) {
-  const sizeField = layerId === 0 ? 'DailyAcres' : 'GISAcres';
-  const where = `IncidentTypeCategory = 'WF' AND ${sizeField} >= 50`;
-  const url = `${INCIDENT_API_BASE}/${layerId}/query`;
-  const count = Number((await fetchIncidentJson(`${url}?${new URLSearchParams({ where, returnCountOnly: 'true', f: 'json' })}`)).count || 0);
-  const features = [];
-  const pageSize = 1_000;
-
-  for (let offset = 0; offset < count; offset += pageSize) {
-    const params = new URLSearchParams({
-      where,
-      outFields: '*',
-      orderByFields: 'OBJECTID ASC',
-      resultOffset: String(offset),
-      resultRecordCount: String(pageSize),
-      f: 'geojson'
-    });
-    const page = await fetchIncidentJson(`${url}?${params}`);
-    features.push(...(page.features || []));
-  }
-  return { type: 'FeatureCollection', features };
-}
-
-async function fetchIncidentJson(url) {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error('Incident service unavailable.');
-  const payload = await response.json();
-  if (payload.error) throw new Error(payload.error.message || 'Incident service returned an error.');
-  return payload;
 }
 
 function renderIncidents(data) {
@@ -282,12 +276,18 @@ function initControls() {
   els.downloadFireCsv.addEventListener('click', downloadCsv);
   els.fireResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
   els.mobileResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
+  els.mobileClearOverlays.addEventListener('click', clearMapOverlays);
+  els.mobileIncidentsToggle.addEventListener('click', () => {
+    const results = document.getElementById('fire-results');
+    setMobileIncidentsOpen(!results.classList.contains('is-mobile-open'));
+  });
+  els.mobileIncidentsClose.addEventListener('click', () => setMobileIncidentsOpen(false));
   els.mobileLayersToggle.addEventListener('click', () => {
     const controls = document.querySelector('.fire-controls');
     setMobileLayersOpen(!controls.classList.contains('is-mobile-open'));
   });
   els.mobileLayersClose.addEventListener('click', () => setMobileLayersOpen(false));
-  els.showFireData.addEventListener('change', renderMarkers);
+  els.showFireData.addEventListener('change', () => { renderMarkers(); renderActiveLayers(); });
   els.showIncidents.addEventListener('change', () => {
     if (state.incidentData) renderIncidents(state.incidentData);
   });
@@ -303,7 +303,10 @@ function initControls() {
   });
   els.incidentList.addEventListener('click', event => {
     const button = event.target.closest('[data-incident-index]');
-    if (button) focusIncident(Number(button.dataset.incidentIndex));
+    if (button) {
+      focusIncident(Number(button.dataset.incidentIndex));
+      setMobileIncidentsOpen(false);
+    }
   });
   els.incidentListToggle.addEventListener('click', () => {
     state.mobileIncidentListExpanded = !state.mobileIncidentListExpanded;
@@ -319,12 +322,38 @@ function initControls() {
     }
   });
   els.fuelMoistureClass.addEventListener('change', renderFuelMarkers);
+  els.showPm25.addEventListener('change', renderPm25Markers);
+  els.pm25Mode.addEventListener('change', renderPm25Markers);
   els.showSmoke.addEventListener('change', syncSmokeLayer);
+  els.showSmokeWind.addEventListener('change', renderSmokeOverlay);
   els.smokeField.addEventListener('change', renderSmokeOverlay);
   els.smokeHour.addEventListener('input', renderSmokeOverlay);
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
   els.smokePlay.addEventListener('click', toggleSmokePlayback);
   document.addEventListener('keydown', handleSmokeKeyboard, true);
+}
+
+function clearMapOverlays() {
+  els.showIncidents.checked = false;
+  els.showFuelMoisture.checked = false;
+  els.showPm25.checked = false;
+  els.showSmoke.checked = false;
+  renderIncidents(state.incidentData || { incidents: { features: [] }, perimeters: { features: [] } });
+  renderFuelMarkers();
+  renderPm25Markers();
+  syncSmokeLayer();
+  renderActiveLayers();
+}
+
+function renderActiveLayers() {
+  const container = document.getElementById('fire-active-layers');
+  if (!container) return;
+  const layers = [
+    [els.showFireData.checked, 'Satellite'], [els.showIncidents.checked, els.incidentFilter.value === 'major' ? 'Major fires' : 'Incidents'],
+    [els.showFuelMoisture.checked, 'Fuel'], [els.showPm25.checked, els.pm25Mode.value === 'aqi' ? 'PM2.5 AQI' : 'PM2.5'],
+    [els.showSmoke.checked, `Smoke F${String(els.smokeHour.value).padStart(3, '0')}`], [els.showSmoke.checked && els.showSmokeWind.checked, 'Wind']
+  ].filter(([active]) => active);
+  container.innerHTML = layers.map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('');
 }
 
 function isMobileViewport() {
@@ -339,6 +368,13 @@ function setMobileLayersOpen(open) {
   if (open) window.setTimeout(() => state.map.invalidateSize(), 200);
 }
 
+function setMobileIncidentsOpen(open) {
+  if (!isMobileViewport()) return;
+  const results = document.getElementById('fire-results');
+  results.classList.toggle('is-mobile-open', open);
+  els.mobileIncidentsToggle.setAttribute('aria-expanded', String(open));
+}
+
 async function syncSmokeLayer() {
   if (!els.showSmoke.checked) {
     stopSmokePlayback();
@@ -346,6 +382,7 @@ async function syncSmokeLayer() {
     return;
   }
 
+  els.showSmokeWind.checked = true;
   els.smokeOptions.open = true;
 
   if (!state.smokeManifest) {
@@ -355,12 +392,15 @@ async function syncSmokeLayer() {
       if (!response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
       state.smokeManifest = await response.json();
       if (state.smokeManifest.available === false) throw new Error(state.smokeManifest.message || 'HRRR Smoke is not available yet.');
+      const windsResponse = await fetch('assets/live/hrrr-smoke/winds.json', { cache: 'no-store' });
+      state.smokeWinds = windsResponse.ok ? await windsResponse.json() : null;
       const lastHour = Math.max(...(state.smokeManifest.hours || [48]));
       els.smokeHour.max = String(lastHour);
       els.smokeHour.disabled = false;
       els.smokeField.disabled = false;
       els.smokeOpacity.disabled = false;
       els.smokePlay.disabled = false;
+      els.showSmokeWind.disabled = !state.smokeWinds;
       setSmokeStatus(`Loaded ${state.smokeManifest.model || 'HRRR Smoke'} run: ${formatSmokeTimes(state.smokeManifest.run)}.`);
     } catch (error) {
       els.showSmoke.checked = false;
@@ -369,6 +409,7 @@ async function syncSmokeLayer() {
       return;
     }
   }
+  els.showSmokeWind.disabled = !state.smokeWinds;
   renderSmokeOverlay();
 }
 
@@ -403,6 +444,7 @@ function renderSmokeOverlay() {
     state.smokeTimeElement.textContent = `HRRR Smoke F${hourToken} | ${formatSmokeTimes(validTime)}`;
     state.smokeTimeElement.hidden = false;
   }
+  renderSmokeWinds(hour);
 }
 
 function clearSmokeOverlay() {
@@ -413,6 +455,32 @@ function clearSmokeOverlay() {
   }
   if (state.smokeTimeElement) state.smokeTimeElement.hidden = true;
   if (state.smokeScaleElement) state.smokeScaleElement.hidden = true;
+  state.smokeWindLayer.clearLayers();
+  els.showSmokeWind.disabled = true;
+  renderMarkers();
+}
+
+function renderSmokeWinds(hour) {
+  state.smokeWindLayer.clearLayers();
+  if (!els.showSmoke.checked || !els.showSmokeWind.checked || !state.smokeWinds) return;
+  const frame = (state.smokeWinds.frames || []).find(item => Number(item.hour) === hour);
+  (frame?.vectors || []).forEach(([latitude, longitude, u, v]) => drawWindArrow(latitude, longitude, u, v));
+}
+
+function drawWindArrow(latitude, longitude, u, v) {
+  const speed = Math.hypot(u, v);
+  if (!Number.isFinite(speed) || speed < 0.5) return;
+  const scale = Math.min(0.38, 0.08 + speed * 0.018);
+  const latScale = v * scale / speed;
+  const lonScale = u * scale / (speed * Math.max(Math.cos(latitude * Math.PI / 180), 0.3));
+  const tail = [latitude - latScale / 2, longitude - lonScale / 2];
+  const head = [latitude + latScale / 2, longitude + lonScale / 2];
+  const wingScale = 0.34;
+  const left = [head[0] - latScale * wingScale - lonScale * wingScale, head[1] - lonScale * wingScale + latScale * wingScale];
+  const right = [head[0] - latScale * wingScale + lonScale * wingScale, head[1] - lonScale * wingScale - latScale * wingScale];
+  const options = { pane: 'windPane', color: '#f8fafc', weight: 1.4, opacity: 0.82, interactive: false };
+  L.polyline([tail, head], options).addTo(state.smokeWindLayer);
+  L.polyline([left, head, right], options).addTo(state.smokeWindLayer);
 }
 
 function renderSmokeScale(field) {
@@ -735,6 +803,7 @@ function renderMarkers() {
   state.fireMarkerScale = scale;
   state.visibleRows.forEach(row => {
     const marker = L.rectangle(fireFootprint(row, scale), {
+      pane: 'firePane',
       stroke: true,
       color: row.daynight === 'N' ? '#f8fafc' : '#3b1d0a',
       weight: 1,
@@ -744,6 +813,7 @@ function renderMarkers() {
     marker.bindPopup(popupHtml(row));
     marker.addTo(state.layer);
   });
+  renderActiveLayers();
 }
 
 function rerenderFireMarkersForZoom() {
@@ -825,6 +895,79 @@ function fuelPopupHtml(row, moisture) {
       <span>10-hour NFDRS: ${formatNumber(row.ten_hr_tl_fuel_moisture_min)}%</span>
       <span>100-hour NFDRS: ${formatNumber(row.hun_hr_tl_fuel_moisture_min)}%</span>
       <span>1000-hour NFDRS: ${formatNumber(row.thou_hr_tl_fuel_moisture_min)}%</span>
+    </div>
+  `;
+}
+
+async function loadPm25() {
+  try {
+    const response = await fetch('assets/live/airnow-pm25.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('AirNow PM2.5 data unavailable.');
+    const data = await response.json();
+    state.pm25Rows = data.rows || [];
+    const updated = data.observedAt ? `Observed ${formatDateTime(data.observedAt)}` : 'Observation time unavailable';
+    els.pm25Status.textContent = `${state.pm25Rows.length.toLocaleString()} AirNow PM2.5 monitors. ${updated}${data.stale ? ' (refresh delayed)' : ''}`;
+    els.pm25Status.classList.toggle('is-error', Boolean(data.stale));
+    renderPm25Markers();
+  } catch (error) {
+    els.pm25Status.textContent = 'AirNow PM2.5 data is unavailable.';
+    els.pm25Status.classList.add('is-error');
+    renderPm25Markers();
+  }
+}
+
+function renderPm25Markers() {
+  state.pm25Layer.clearLayers();
+  const showPm25 = els.showPm25.checked;
+  els.pm25Legend.hidden = !showPm25;
+  if (!showPm25) { renderActiveLayers(); return; }
+
+  const aqiMode = els.pm25Mode.value === 'aqi';
+  els.pm25Legend.innerHTML = aqiMode
+    ? '<span><i class="pm25-good"></i>0-50</span><span><i class="pm25-moderate"></i>51-100</span><span><i class="pm25-unhealthy"></i>101-150</span><span><i class="pm25-very-unhealthy"></i>151+</span>'
+    : '<span><i class="pm25-good"></i>&lt; 9</span><span><i class="pm25-moderate"></i>9-35</span><span><i class="pm25-unhealthy"></i>35-55</span><span><i class="pm25-very-unhealthy"></i>55+</span>';
+
+  state.pm25Rows.forEach(row => {
+    const value = aqiMode ? Number(row.nowcastAqi) : Number(row.concentration);
+    if (!Number.isFinite(value)) return;
+    const marker = L.circleMarker([row.latitude, row.longitude], {
+      pane: 'pm25Pane',
+      radius: 6,
+      color: '#f8fafc',
+      weight: 1.25,
+      fillColor: aqiMode ? aqiColor(value) : pm25Color(value),
+      fillOpacity: 0.92
+    });
+    marker.bindPopup(pm25PopupHtml(row));
+    marker.addTo(state.pm25Layer);
+  });
+  renderActiveLayers();
+}
+
+function pm25Color(concentration) {
+  if (concentration < 9) return '#22c55e';
+  if (concentration < 35) return '#facc15';
+  if (concentration < 55) return '#f97316';
+  if (concentration < 125) return '#ef4444';
+  return '#a855f7';
+}
+
+function aqiColor(aqi) {
+  if (aqi <= 50) return '#22c55e';
+  if (aqi <= 100) return '#facc15';
+  if (aqi <= 150) return '#f97316';
+  if (aqi <= 200) return '#ef4444';
+  return '#a855f7';
+}
+
+function pm25PopupHtml(row) {
+  return `
+    <div class="fire-popup">
+      <strong>${escapeHtml(row.siteName || `AirNow ${row.stationId}`)}</strong>
+      <span>${escapeHtml(row.state || 'AirNow')} | ${escapeHtml(row.observedAt || 'Observation time unavailable')}</span>
+      <span>PM2.5: ${formatNumber(row.concentration)} ug/m3</span>
+      <span>PM2.5 NowCast AQI: ${Number.isFinite(Number(row.nowcastAqi)) ? formatNumber(row.nowcastAqi) : 'Unavailable'}</span>
+      <span>${escapeHtml(row.agency || 'AirNow preliminary observation')}</span>
     </div>
   `;
 }

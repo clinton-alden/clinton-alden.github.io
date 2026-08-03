@@ -2,6 +2,7 @@ name: Deploy site and refresh fire data
 
 on:
   schedule:
+    - cron: '7 * * * *'
     - cron: '20 2,8,14,20 * * *'
   workflow_dispatch:
   push:
@@ -33,32 +34,76 @@ jobs:
           path: assets/live/firms.json
           key: firms-retrievals-${{ github.run_id }}
           restore-keys: firms-retrievals-
-      - name: Restore last fuel and incident retrievals
+      - name: Restore last fuel moisture retrievals
         uses: actions/cache/restore@v4
         with:
-          path: |
-            assets/live/fuel-moisture.json
-            assets/live/incidents.json
-          key: auxiliary-fire-data-${{ github.run_id }}
-          restore-keys: auxiliary-fire-data-
-      - run: node scripts/fetch-live-data.mjs
+          path: assets/live/fuel-moisture.json
+          key: fuel-moisture-${{ github.run_id }}
+          restore-keys: fuel-moisture-
+      - name: Restore last incident retrievals
+        uses: actions/cache/restore@v4
+        with:
+          path: assets/live/incidents.json
+          key: incidents-${{ github.run_id }}
+          restore-keys: incidents-
+      - name: Restore last AirNow PM2.5 retrievals
+        uses: actions/cache/restore@v4
+        with:
+          path: assets/live/airnow-pm25.json
+          key: airnow-pm25-${{ github.run_id }}
+          restore-keys: airnow-pm25-
+      - name: Restore last HRRR smoke run
+        uses: actions/cache/restore@v4
+        with:
+          path: assets/live/hrrr-smoke
+          key: hrrr-smoke-${{ github.run_id }}
+          restore-keys: hrrr-smoke-
+      - name: Refresh all non-smoke fire data
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
+        run: node scripts/fetch-live-data.mjs
+      - name: Refresh FIRMS, incidents, and fire perimeters
+        if: github.event_name == 'schedule' && github.event.schedule == '7 * * * *'
+        run: node scripts/fetch-live-data.mjs --skip-fuel-moisture
+      - name: Confirm a smoke run is available for hourly deployment
+        if: github.event_name == 'schedule' && github.event.schedule == '7 * * * *'
+        run: test -f assets/live/hrrr-smoke/manifest.json
       - name: Save FIRMS retrievals
         uses: actions/cache/save@v4
         with:
           path: assets/live/firms.json
           key: firms-retrievals-${{ github.run_id }}
-      - name: Save fuel and incident retrievals
+      - name: Save fuel moisture retrievals
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         uses: actions/cache/save@v4
         with:
-          path: |
-            assets/live/fuel-moisture.json
-            assets/live/incidents.json
-          key: auxiliary-fire-data-${{ github.run_id }}
+          path: assets/live/fuel-moisture.json
+          key: fuel-moisture-${{ github.run_id }}
+      - name: Save incident retrievals
+        uses: actions/cache/save@v4
+        with:
+          path: assets/live/incidents.json
+          key: incidents-${{ github.run_id }}
+      - name: Save AirNow PM2.5 retrievals
+        uses: actions/cache/save@v4
+        with:
+          path: assets/live/airnow-pm25.json
+          key: airnow-pm25-${{ github.run_id }}
       - uses: actions/setup-python@v5
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         with:
           python-version: '3.12'
-      - run: python -m pip install --disable-pip-version-check numpy pillow requests scipy eccodes
-      - run: python scripts/fetch-hrrr-smoke.py
+      - name: Install smoke dependencies
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
+        run: python -m pip install --disable-pip-version-check numpy pillow requests scipy eccodes
+      - name: Refresh HRRR smoke
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
+        run: python scripts/fetch-hrrr-smoke.py
+      - name: Save HRRR smoke run
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
+        uses: actions/cache/save@v4
+        with:
+          path: assets/live/hrrr-smoke
+          key: hrrr-smoke-${{ github.run_id }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

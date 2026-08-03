@@ -7,39 +7,51 @@ const sources = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT', 'MODI
 const firmsBase = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 const femsUrl = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
 const incidentBase = 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Wildfires_v1/FeatureServer';
+const airnowBase = 'https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/today';
 const requestTimeoutMs = 60_000;
+const skipFuelMoisture = process.argv.includes('--skip-fuel-moisture');
 
 await mkdir(outputDirectory, { recursive: true });
 
-const fireResults = await Promise.allSettled(sources.map(async source => {
-  const response = await fetchWithTimeout(`${firmsBase}/${firmsKey}/${source}/${bounds}/2`);
-  if (!response.ok) throw new Error(`FIRMS ${source} returned ${response.status}`);
-  const csv = await response.text();
-  if (!isFirmsCsv(csv)) throw new Error(`FIRMS ${source} returned an invalid CSV response`);
-  return { source, csv };
-}));
-const fireResponses = fireResults.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
-const unavailableSources = fireResults.flatMap((result, index) => {
-  if (result.status === 'fulfilled') return [];
-  console.warn(`Skipping ${sources[index]}: ${result.reason.message}`);
-  return [sources[index]];
-});
-if (fireResponses.length === 0) {
-  const cachedFirms = await readJson('firms.json');
-  if (cachedFirms) console.warn(`All FIRMS sources were unavailable; retaining cached detections from ${cachedFirms.generatedAt || 'an unknown time'}.`);
-  else console.warn('All FIRMS sources were unavailable and no prior retrieval cache was found; publishing an empty dataset for this run.');
-  await writeJson('firms.json', {
-    ...cachedFirms,
-    generatedAt: cachedFirms?.generatedAt || new Date().toISOString(),
-    bounds,
-    days: 2,
-    sources: cachedFirms?.sources || [],
-    lastAttemptAt: new Date().toISOString(),
-    unavailableSources: sources,
-    stale: true,
-    rows: cachedFirms?.rows || []
+await refreshFirms();
+if (!skipFuelMoisture) {
+  await refreshFuelMoisture();
+}
+
+await refreshIncidents();
+await refreshAirNowPm25();
+
+async function refreshFirms() {
+  const fireResults = await Promise.allSettled(sources.map(async source => {
+    const response = await fetchWithTimeout(`${firmsBase}/${firmsKey}/${source}/${bounds}/2`);
+    if (!response.ok) throw new Error(`FIRMS ${source} returned ${response.status}`);
+    const csv = await response.text();
+    if (!isFirmsCsv(csv)) throw new Error(`FIRMS ${source} returned an invalid CSV response`);
+    return { source, csv };
+  }));
+  const fireResponses = fireResults.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+  const unavailableSources = fireResults.flatMap((result, index) => {
+    if (result.status === 'fulfilled') return [];
+    console.warn(`Skipping ${sources[index]}: ${result.reason.message}`);
+    return [sources[index]];
   });
-} else {
+  if (fireResponses.length === 0) {
+    const cachedFirms = await readJson('firms.json');
+    if (cachedFirms) console.warn(`All FIRMS sources were unavailable; retaining cached detections from ${cachedFirms.generatedAt || 'an unknown time'}.`);
+    else console.warn('All FIRMS sources were unavailable and no prior retrieval cache was found; publishing an empty dataset for this run.');
+    await writeJson('firms.json', {
+      ...cachedFirms,
+      generatedAt: cachedFirms?.generatedAt || new Date().toISOString(),
+      bounds,
+      days: 2,
+      sources: cachedFirms?.sources || [],
+      lastAttemptAt: new Date().toISOString(),
+      unavailableSources: sources,
+      stale: true,
+      rows: cachedFirms?.rows || []
+    });
+    return;
+  }
   const fireRows = fireResponses.flatMap(({ source, csv }) => parseCsv(csv).map(row => ({ ...row, source })));
   await writeJson('firms.json', {
     generatedAt: new Date().toISOString(),
@@ -51,9 +63,6 @@ if (fireResponses.length === 0) {
     rows: fireRows
   });
 }
-
-await refreshFuelMoisture();
-await refreshIncidents();
 
 async function refreshFuelMoisture() {
   const endDate = new Date();
@@ -95,6 +104,70 @@ async function refreshIncidents() {
       perimeters: { type: 'FeatureCollection', features: [] }
     }, error);
   }
+}
+
+async function refreshAirNowPm25() {
+  try {
+    const sitesResponse = await fetchWithTimeout(`${airnowBase}/monitoring_site_locations.dat`);
+    if (!sitesResponse.ok) throw new Error(`AirNow station file returned ${sitesResponse.status}`);
+    const sites = new Map();
+    for (const line of (await sitesResponse.text()).split(/\r?\n/)) {
+      const fields = line.split('|');
+      if (fields[1] !== 'PM2.5' || fields[4] !== 'Active') continue;
+      const latitude = Number(fields[8]);
+      const longitude = Number(fields[9]);
+      if (!inWesternUs(latitude, longitude)) continue;
+      sites.set(fields[0], { stationId: fields[0], siteName: fields[3], agency: fields[6], state: fields[18], latitude, longitude });
+    }
+
+    const readingsByStation = new Map();
+    let observedAt = null;
+    for (let hoursAgo = 1; hoursAgo <= 12; hoursAgo += 1) {
+      const candidate = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+      const filename = `HourlyData_${candidate.toISOString().slice(0, 13).replace(/[-T:]/g, '')}.dat`;
+      const response = await fetchWithTimeout(`${airnowBase}/${filename}`);
+      if (!response.ok) continue;
+      const text = await response.text();
+      if (!text.trim()) continue;
+      if (!observedAt) observedAt = candidate.toISOString();
+      for (const line of text.split(/\r?\n/)) {
+        const fields = line.split('|');
+        if (fields[5] !== 'PM2.5' || fields[6] !== 'UG/M3' || !sites.has(fields[2])) continue;
+        const concentration = Number(fields[7]);
+        if (!Number.isFinite(concentration)) continue;
+        const readings = readingsByStation.get(fields[2]) || [];
+        readings.push({ concentration, agency: fields[8] });
+        readingsByStation.set(fields[2], readings);
+      }
+    }
+    if (!observedAt) throw new Error('No AirNow hourly PM2.5 file was available in the last 12 hours');
+
+    const rows = [...readingsByStation].map(([stationId, readings]) => {
+      const latest = readings[0];
+      return { ...sites.get(stationId), concentration: latest.concentration, nowcastAqi: pm25NowcastAqi(readings.map(row => row.concentration)), observedAt, agency: latest.agency || sites.get(stationId).agency };
+    });
+    await writeJson('airnow-pm25.json', { generatedAt: new Date().toISOString(), observedAt, stale: false, rows });
+  } catch (error) {
+    await retainCachedJson('airnow-pm25.json', { observedAt: null, rows: [] }, error);
+  }
+}
+
+function pm25NowcastAqi(readings) {
+  if (readings.length < 2) return null;
+  const maximum = Math.max(...readings);
+  const minimum = Math.min(...readings);
+  const weight = maximum > 0 ? Math.max(0.5, 1 - (maximum - minimum) / maximum) : 1;
+  const nowcast = readings.reduce((total, value, index) => total + value * weight ** index, 0)
+    / readings.reduce((total, _, index) => total + weight ** index, 0);
+  const concentration = Math.floor(nowcast * 10) / 10;
+  const breakpoints = [[0, 9, 0, 50], [9.1, 35.4, 51, 100], [35.5, 55.4, 101, 150], [55.5, 125.4, 151, 200], [125.5, 225.4, 201, 300], [225.5, 325.4, 301, 500]];
+  const [lowConcentration, highConcentration, lowAqi, highAqi] = breakpoints.find(([, high]) => concentration <= high) || [325.5, 99999.9, 501, 999];
+  return Math.round((highAqi - lowAqi) / (highConcentration - lowConcentration) * (concentration - lowConcentration) + lowAqi);
+}
+
+function inWesternUs(latitude, longitude) {
+  return Number.isFinite(latitude) && Number.isFinite(longitude)
+    && latitude >= 30 && latitude <= 51 && longitude >= -127 && longitude <= -102;
 }
 
 async function fems(query) {

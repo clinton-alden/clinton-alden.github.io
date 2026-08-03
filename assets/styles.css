@@ -444,6 +444,7 @@ a:hover { text-decoration: underline; }
   justify-content: space-between;
   gap: 12px;
 }
+.incident-results-actions { display: flex; align-items: center; gap: 8px; }
 .mobile-close-button,
 .fire-mobile-map-tools,
 .mobile-incident-toggle { display: none; }
@@ -563,6 +564,8 @@ a:hover { text-decoration: underline; }
   min-width: 0;
 }
 .fire-map-wrap { position: relative; }
+.fire-active-layers { position: absolute; z-index: 1100; top: 10px; left: 52px; display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 190px); pointer-events: none; }
+.fire-active-layers span { padding: 5px 7px; border: 1px solid rgba(255,255,255,.28); border-radius: 3px; color: #f8fafc; background: rgba(8,18,34,.88); font: 600 10px var(--font-mono); }
 .fire-toolbar {
   min-height: 44px;
   margin-bottom: 10px;
@@ -618,6 +621,10 @@ a:hover { text-decoration: underline; }
 .fuel-moist {
   background: #38bdf8;
 }
+.pm25-good { background: #22c55e; }
+.pm25-moderate { background: #facc15; }
+.pm25-unhealthy { background: #f97316; }
+.pm25-very-unhealthy { background: #ef4444; }
 .fire-map {
   width: 100%;
   height: 650px;
@@ -802,7 +809,8 @@ a:hover { text-decoration: underline; }
     transform: translateY(calc(100% + 16px));
     transition: transform 180ms ease;
   }
-  .fire-controls.is-mobile-open { transform: translateY(0); }
+  .fire-controls.reveal { transform: translateY(calc(100% + 16px)); }
+  .fire-controls.reveal.is-mobile-open { transform: translateY(0); }
   .fire-controls-heading {
     position: sticky;
     top: -16px;
@@ -832,6 +840,25 @@ a:hover { text-decoration: underline; }
     display: grid;
     gap: 6px;
   }
+  .fire-results {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1200;
+    max-height: min(68svh, 620px);
+    margin: 0;
+    padding: 16px;
+    overflow-y: auto;
+    border: 1px solid rgba(123,163,208,.28);
+    border-radius: 8px 8px 0 0;
+    background: var(--bg-alt);
+    box-shadow: 0 -12px 36px rgba(0,0,0,.42);
+    transform: translateY(calc(100% + 16px));
+    transition: transform 180ms ease;
+  }
+  .fire-results.is-mobile-open { transform: translateY(0); }
+  .fire-results .mobile-close-button { display: grid; }
   .fire-mobile-map-tools button {
     min-width: 72px;
     min-height: 44px;
@@ -843,6 +870,7 @@ a:hover { text-decoration: underline; }
     box-shadow: 0 1px 4px rgba(0,0,0,0.35);
     font: 600 12px var(--font-mono);
   }
+  .fire-active-layers { top: 10px; left: 10px; max-width: calc(100% - 102px); }
   .fire-controls .checkbox-label { min-height: 44px; }
   .fire-controls .checkbox-label input { width: 20px; min-height: 20px; }
   .fire-controls select,

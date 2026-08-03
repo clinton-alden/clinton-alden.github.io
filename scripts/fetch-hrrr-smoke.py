@@ -22,6 +22,7 @@ WEST = {"west": -127.0, "east": -102.0, "south": 30.0, "north": 51.0}
 RESOLUTION = 0.05
 HOURS = range(49)
 MAX_RUN_AGE_HOURS = 24
+WIND_STRIDE = 30
 FIELDS = {
     "surface": {
         "parameter": "MASSDEN",
@@ -48,6 +49,10 @@ COLORS = np.array([
     [190, 24, 93, 205],
     [107, 33, 168, 225],
 ], dtype=np.uint8)
+WIND_PARAMETERS = {
+    "UGRD": (0, 2, 2),
+    "VGRD": (0, 2, 3),
+}
 
 
 def main() -> None:
@@ -59,12 +64,18 @@ def main() -> None:
 
     run = find_latest_completed_run()
     regrid = Regridder()
+    wind_frames = []
     for hour in HOURS:
         fields = download_hour(run, hour)
         for name, config in FIELDS.items():
             values, latitudes, longitudes = fields[config["parameter"]]
             regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
             render_overlay(regular, config["breaks"], OUTPUT / name / f"f{hour:03d}.webp")
+        u_values, latitudes, longitudes = fields["UGRD"]
+        v_values, _, _ = fields["VGRD"]
+        u_regular = regrid.to_regular(u_values, latitudes, longitudes)
+        v_regular = regrid.to_regular(v_values, latitudes, longitudes)
+        wind_frames.append({"hour": hour, "vectors": wind_vectors(regrid, u_regular, v_regular)})
 
     manifest = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -84,6 +95,7 @@ def main() -> None:
         },
     }
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
+    (OUTPUT / "winds.json").write_text(json.dumps({"run": manifest["run"], "frames": wind_frames}, separators=(",", ":")))
 
 
 def find_latest_completed_run() -> datetime:
@@ -111,7 +123,10 @@ def download_hour(run: datetime, hour: int) -> dict[str, tuple[np.ndarray, np.nd
         "file": filename,
         "var_MASSDEN": "on",
         "var_COLMD": "on",
+        "var_UGRD": "on",
+        "var_VGRD": "on",
         "lev_8_m_above_ground": "on",
+        "lev_10_m_above_ground": "on",
         "lev_entire_atmosphere_(considered_as_a_single_layer)": "on",
         "subregion": "",
         "leftlon": WEST["west"],
@@ -147,6 +162,8 @@ def read_fields(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarra
                     None,
                 )
                 if parameter is None:
+                    parameter = next((name for name, code in WIND_PARAMETERS.items() if code == grib_parameter), None)
+                if parameter is None:
                     continue
                 level_type = str(codes_get(message, "typeOfLevel"))
                 level = int(codes_get(message, "level")) if level_type not in {"surface", "entireAtmosphere"} else 0
@@ -156,17 +173,28 @@ def read_fields(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarra
                 latitudes = np.asarray(codes_get_array(message, "latitudes"), dtype=np.float32)
                 longitudes = np.asarray(codes_get_array(message, "longitudes"), dtype=np.float32)
                 longitudes = np.where(longitudes > 180, longitudes - 360, longitudes)
-                preference = level if parameter == "MASSDEN" else 0
+                preference = abs(level - 10) if parameter in WIND_PARAMETERS else level if parameter == "MASSDEN" else 0
                 found.setdefault(parameter, []).append((preference, values, latitudes, longitudes))
             finally:
                 codes_release(message)
 
     selected = {parameter: min(messages, key=lambda item: item[0])[1:] for parameter, messages in found.items()}
-    required = {config["parameter"] for config in FIELDS.values()}
+    required = {config["parameter"] for config in FIELDS.values()} | set(WIND_PARAMETERS)
     missing = required - selected.keys()
     if missing:
         raise RuntimeError(f"HRRR response did not contain: {', '.join(sorted(missing))}.")
     return selected
+
+
+def wind_vectors(regrid: "Regridder", u_values: np.ndarray, v_values: np.ndarray) -> list[list[float]]:
+    vectors = []
+    for lat_index in range(0, len(regrid.target_lats), WIND_STRIDE):
+        for lon_index in range(0, len(regrid.target_lons), WIND_STRIDE):
+            u = float(u_values[lat_index, lon_index])
+            v = float(v_values[lat_index, lon_index])
+            if np.isfinite(u) and np.isfinite(v):
+                vectors.append([round(float(regrid.target_lats[lat_index]), 3), round(float(regrid.target_lons[lon_index]), 3), round(u, 2), round(v, 2)])
+    return vectors
 
 
 class Regridder:
