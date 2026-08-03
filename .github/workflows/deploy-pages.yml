@@ -33,12 +33,27 @@ jobs:
           path: assets/live/firms.json
           key: firms-retrievals-${{ github.run_id }}
           restore-keys: firms-retrievals-
+      - name: Restore last fuel and incident retrievals
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            assets/live/fuel-moisture.json
+            assets/live/incidents.json
+          key: auxiliary-fire-data-${{ github.run_id }}
+          restore-keys: auxiliary-fire-data-
       - run: node scripts/fetch-live-data.mjs
       - name: Save FIRMS retrievals
         uses: actions/cache/save@v4
         with:
           path: assets/live/firms.json
           key: firms-retrievals-${{ github.run_id }}
+      - name: Save fuel and incident retrievals
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            assets/live/fuel-moisture.json
+            assets/live/incidents.json
+          key: auxiliary-fire-data-${{ github.run_id }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

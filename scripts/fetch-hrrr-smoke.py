@@ -6,8 +6,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
-import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -22,8 +21,7 @@ NOMADS = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
 WEST = {"west": -127.0, "east": -102.0, "south": 30.0, "north": 51.0}
 RESOLUTION = 0.05
 HOURS = range(49)
-LATEST_RUN_ATTEMPTS = 15
-LATEST_RUN_RETRY_SECONDS = 120
+MAX_RUN_AGE_HOURS = 24
 FIELDS = {
     "surface": {
         "parameter": "MASSDEN",
@@ -90,19 +88,18 @@ def main() -> None:
 
 def find_latest_completed_run() -> datetime:
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    candidate = now.replace(hour=(now.hour // 6) * 6)
+    latest_cycle = now.replace(hour=(now.hour // 6) * 6)
     last_error: Exception | None = None
-    for attempt in range(1, LATEST_RUN_ATTEMPTS + 1):
+    for age_hours in range(0, MAX_RUN_AGE_HOURS, 6):
+        candidate = latest_cycle.replace() - timedelta(hours=age_hours)
         try:
             download_hour(candidate, 48)
+            if age_hours:
+                print(f"Latest HRRR Smoke cycle was incomplete; using completed {candidate:%Y-%m-%d %HZ} run.")
             return candidate
         except Exception as error:
             last_error = error
-            if attempt == LATEST_RUN_ATTEMPTS:
-                break
-            print(f"Latest HRRR Smoke run is not ready (attempt {attempt}/{LATEST_RUN_ATTEMPTS}); retrying in {LATEST_RUN_RETRY_SECONDS} seconds.")
-            time.sleep(LATEST_RUN_RETRY_SECONDS)
-    raise RuntimeError(f"Latest HRRR Smoke run did not become available: {last_error}")
+    raise RuntimeError(f"No completed HRRR Smoke run from the last {MAX_RUN_AGE_HOURS} hours was available: {last_error}")
 
 
 def download_hour(run: datetime, hour: int) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]]:

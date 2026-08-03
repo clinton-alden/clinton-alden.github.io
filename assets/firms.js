@@ -124,13 +124,7 @@ function initMap() {
 
 async function loadIncidents() {
   try {
-    const [incidents, perimeters] = await Promise.all([0, 1].map(async layerId => {
-      const sizeField = layerId === 0 ? 'DailyAcres' : 'GISAcres';
-      const where = `IncidentTypeCategory%3D%27WF%27%20AND%20${sizeField}%3E%3D50`;
-      const response = await fetch(`${INCIDENT_API_BASE}/${layerId}/query?where=${where}&outFields=*&f=geojson`, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Incident layer ${layerId} unavailable.`);
-      return response.json();
-    }));
+    const [incidents, perimeters] = await Promise.all([0, 1].map(fetchIncidentLayer));
     renderIncidents({ incidents, perimeters });
   } catch (error) {
     try {
@@ -141,6 +135,37 @@ async function loadIncidents() {
       console.warn('Incident layer unavailable.', error);
     }
   }
+}
+
+async function fetchIncidentLayer(layerId) {
+  const sizeField = layerId === 0 ? 'DailyAcres' : 'GISAcres';
+  const where = `IncidentTypeCategory = 'WF' AND ${sizeField} >= 50`;
+  const url = `${INCIDENT_API_BASE}/${layerId}/query`;
+  const count = Number((await fetchIncidentJson(`${url}?${new URLSearchParams({ where, returnCountOnly: 'true', f: 'json' })}`)).count || 0);
+  const features = [];
+  const pageSize = 1_000;
+
+  for (let offset = 0; offset < count; offset += pageSize) {
+    const params = new URLSearchParams({
+      where,
+      outFields: '*',
+      orderByFields: 'OBJECTID ASC',
+      resultOffset: String(offset),
+      resultRecordCount: String(pageSize),
+      f: 'geojson'
+    });
+    const page = await fetchIncidentJson(`${url}?${params}`);
+    features.push(...(page.features || []));
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+async function fetchIncidentJson(url) {
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Incident service unavailable.');
+  const payload = await response.json();
+  if (payload.error) throw new Error(payload.error.message || 'Incident service returned an error.');
+  return payload;
 }
 
 function renderIncidents(data) {
@@ -188,7 +213,7 @@ function populateIncidentStates(features) {
 function renderIncidentList() {
   const rows = [...state.filteredIncidents].sort((a, b) => incidentAcres(b.properties) - incidentAcres(a.properties));
   state.incidentListRows = rows;
-  els.incidentSummary.textContent = `${rows.length.toLocaleString()} incident${rows.length === 1 ? '' : 's'}`;
+  els.incidentSummary.textContent = `${rows.length.toLocaleString()} incident${rows.length === 1 ? '' : 's'}${state.incidentData?.stale ? ' (refresh delayed)' : ''}`;
   els.incidentList.innerHTML = rows.slice(0, 30).map((feature, index) => {
     const properties = feature.properties || {};
     const name = properties.IncidentName || 'Unnamed incident';
@@ -219,9 +244,11 @@ function incidentPopup(properties = {}) {
 
 function initControls() {
   const today = new Date().toISOString().slice(0, 10);
+  const latestDailyObservation = new Date();
+  latestDailyObservation.setUTCDate(latestDailyObservation.getUTCDate() - 1);
   els.fireDate.max = today;
   els.fuelMoistureDate.max = today;
-  els.fuelMoistureDate.value = today;
+  els.fuelMoistureDate.value = latestDailyObservation.toISOString().slice(0, 10);
 
   els.fireMinFrp.addEventListener('input', () => {
     els.fireMinFrpLabel.textContent = `${els.fireMinFrp.value} MW`;
@@ -415,7 +442,7 @@ async function loadFuelMoisture() {
       state.fuelDate = cached.date;
       state.fuelRows = cached.rows || [];
       renderFuelMarkers();
-      setFuelStatus(`Loaded ${state.fuelRows.length.toLocaleString()} cached RAWS stations for ${cached.date}.`);
+      setFuelStatus(`Loaded ${state.fuelRows.length.toLocaleString()} cached RAWS stations for ${cached.date}${cached.stale ? '; refresh delayed.' : '.'}`);
       return;
     }
     const result = await fetchFems(`

@@ -14,6 +14,14 @@ python3 -m http.server 8000
 
 2. Visit http://localhost:8000 in your browser.
 
+For the Fire Tools page, generate the current HRRR smoke overlays locally, then start the preview server:
+
+```bash
+./scripts/preview-site.sh --refresh-smoke
+```
+
+After that first run, use `./scripts/preview-site.sh` for normal HTML, CSS, and JavaScript iteration. The generated data stays local and does not need to be committed or pushed.
+
 ## Structure
 
 - index.html — Main portfolio (About, Experience, Projects, Skills, Contact)
