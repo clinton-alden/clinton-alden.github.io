@@ -117,13 +117,18 @@ function initMap() {
     zoomAnimation: true,
     fadeAnimation: true,
     markerZoomAnimation: true,
-    zoomSnap: 0.25,
-    zoomDelta: 0.25,
-    wheelPxPerZoomLevel: 90
+    scrollWheelZoom: true,
+    zoomSnap: 0,
+    zoomDelta: 0.5,
+    wheelPxPerZoomLevel: 60,
+    zoomAnimationThreshold: 12
   }).fitBounds(CONUS_VIEW.bounds);
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
+    keepBuffer: 4,
+    updateWhenZooming: false,
+    updateWhenIdle: false,
     attribution: 'Tiles &copy; Esri'
   }).addTo(state.map);
 
@@ -131,6 +136,8 @@ function initMap() {
   state.map.getPane('smokePane').style.zIndex = 350;
   state.map.createPane('roadsPane');
   state.map.getPane('roadsPane').style.zIndex = 360;
+  state.map.createPane('boundariesPane');
+  state.map.getPane('boundariesPane').style.zIndex = 365;
   state.map.createPane('firePane');
   state.map.getPane('firePane').style.zIndex = 410;
   state.map.createPane('pm25Pane');
@@ -140,7 +147,18 @@ function initMap() {
   L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
     pane: 'roadsPane',
+    keepBuffer: 4,
+    updateWhenZooming: false,
+    updateWhenIdle: false,
     attribution: 'Roads &copy; Esri'
+  }).addTo(state.map);
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    pane: 'boundariesPane',
+    keepBuffer: 4,
+    updateWhenZooming: false,
+    updateWhenIdle: false,
+    attribution: 'Boundaries &copy; Esri'
   }).addTo(state.map);
 
   state.layer = L.layerGroup().addTo(state.map);
@@ -924,8 +942,8 @@ function renderPm25Markers() {
 
   const aqiMode = els.pm25Mode.value === 'aqi';
   els.pm25Legend.innerHTML = aqiMode
-    ? '<span><i class="pm25-good"></i>0-50</span><span><i class="pm25-moderate"></i>51-100</span><span><i class="pm25-unhealthy"></i>101-150</span><span><i class="pm25-very-unhealthy"></i>151+</span>'
-    : '<span><i class="pm25-good"></i>&lt; 9</span><span><i class="pm25-moderate"></i>9-35</span><span><i class="pm25-unhealthy"></i>35-55</span><span><i class="pm25-very-unhealthy"></i>55+</span>';
+    ? '<span><i class="pm25-good"></i>0-50</span><span><i class="pm25-moderate"></i>51-100</span><span><i class="pm25-unhealthy"></i>101-150</span><span><i class="pm25-very-unhealthy"></i>151-200</span><span><i class="pm25-hazardous"></i>201+</span>'
+    : '<span><i class="pm25-good"></i>&lt; 9</span><span><i class="pm25-moderate"></i>9-35</span><span><i class="pm25-unhealthy"></i>35-55</span><span><i class="pm25-very-unhealthy"></i>55-125</span><span><i class="pm25-hazardous"></i>125+</span>';
 
   state.pm25Rows.forEach(row => {
     const value = aqiMode ? Number(row.nowcastAqi) : Number(row.concentration);

@@ -625,6 +625,7 @@ a:hover { text-decoration: underline; }
 .pm25-moderate { background: #facc15; }
 .pm25-unhealthy { background: #f97316; }
 .pm25-very-unhealthy { background: #ef4444; }
+.pm25-hazardous { background: #a855f7; }
 .fire-map {
   width: 100%;
   height: 650px;
