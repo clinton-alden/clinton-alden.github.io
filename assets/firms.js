@@ -271,7 +271,7 @@ async function syncSmokeLayer() {
       els.smokeField.disabled = false;
       els.smokeOpacity.disabled = false;
       els.smokePlay.disabled = false;
-      setSmokeStatus(`Loaded ${state.smokeManifest.model || 'HRRR Smoke'} run ${formatDateTime(state.smokeManifest.run)}.`);
+      setSmokeStatus(`Loaded ${state.smokeManifest.model || 'HRRR Smoke'} run: ${formatSmokeTimes(state.smokeManifest.run)}.`);
     } catch (error) {
       els.showSmoke.checked = false;
       clearSmokeOverlay();
@@ -299,7 +299,7 @@ function renderSmokeOverlay() {
   }).addTo(state.map);
   els.smokeLegend.hidden = false;
   const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
-  els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatDateTime(validTime.toISOString())} | ${field.label} (${field.units})`;
+  els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatSmokeTimes(validTime)} | ${field.label} (${field.units})`;
 }
 
 function clearSmokeOverlay() {
@@ -802,6 +802,24 @@ function formatNumber(value) {
 function formatDateTime(value) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'unknown';
+}
+
+function formatSmokeTimes(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'unknown time';
+  const options = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  };
+  return [
+    ['UTC', 'UTC'],
+    ['Mountain', 'America/Denver'],
+    ['Pacific', 'America/Los_Angeles']
+  ].map(([label, timeZone]) => `${label} ${new Intl.DateTimeFormat('en-US', { ...options, timeZone }).format(date)}`).join(' | ');
 }
 
 function clamp(value, min, max) {
