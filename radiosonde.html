@@ -7,6 +7,18 @@
         <meta name="description" content="CONUS observed radiosonde profiles downloaded in bulk and plotted as interactive MetPy skew-T diagrams." />
         <meta name="author" content="Clinton Alden" />
         <meta name="canonical" href="https://clintonalden.com/radiosonde.html" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Clinton Alden" />
+        <meta property="og:title" content="Radiosonde Skew-T | Clinton Alden" />
+        <meta property="og:description" content="Browse recent CONUS observed soundings and render interactive MetPy skew-T diagrams." />
+        <meta property="og:url" content="https://clintonalden.com/radiosonde.html" />
+        <meta property="og:image" content="https://clintonalden.com/assets/oak-20260731-00z-skewt.png" />
+        <meta property="og:image:alt" content="Example Skew-T atmospheric sounding diagram" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Radiosonde Skew-T | Clinton Alden" />
+        <meta name="twitter:description" content="Browse recent CONUS observed soundings and render interactive MetPy skew-T diagrams." />
+        <meta name="twitter:image" content="https://clintonalden.com/assets/oak-20260731-00z-skewt.png" />
+        <meta name="twitter:image:alt" content="Example Skew-T atmospheric sounding diagram" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -18,8 +30,24 @@
         <script defer src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
         <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="assets/radiosonde.js?v=20260730-default-slc" defer></script>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Radiosonde Skew-T",
+          "url": "https://clintonalden.com/radiosonde.html",
+          "applicationCategory": "WeatherApplication",
+          "operatingSystem": "Web",
+          "description": "An interactive tool for viewing recent CONUS radiosonde observations as MetPy skew-T diagrams.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+        </script>
     </head>
-    <body>
+    <body class="skip-banner-on-load">
         <div class="banner">
             <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
         </div>
@@ -28,16 +56,11 @@
                 <div class="logo">
                     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
                         <img src="assets/favicon.svg" alt="Snowflake logo" class="logo-icon" />
+                        <span class="brand-name">Clinton Alden Consulting</span>
                     </a>
                 </div>
                 <nav class="nav-links">
-                    <a href="index.html#expertise">Expertise</a>
-                    <a href="index.html#credentials">Credentials</a>
-                    <a href="index.html#consulting">Consulting</a>
-                    <a href="index.html#contact">Contact</a>
-                    <a href="cv.html">CV</a>
-                    <a href="adventures.html">Adventures</a>
-                    <a href="radiosonde.html" class="active">Radiosonde</a>
+                    <a href="index.html">About Me</a><a href="cv.html">Consulting</a><a href="adventures.html">Adventures</a><details class="nav-tools active"><summary>Weather Tools</summary><div><a href="radiosonde.html" class="active">Radiosonde</a><a href="firetools.html">Fire Map</a></div></details>
                 </nav>
                 <button class="burger" aria-label="Toggle Navigation">Menu</button>
             </div>

@@ -1,11 +1,38 @@
 // Mobile nav toggle
 const burger = document.querySelector('.burger');
 const navLinks = document.querySelector('.nav-links');
+
+// Tool and content pages begin at their navigation while keeping the banner above.
+if (document.body.classList.contains('skip-banner-on-load') && !window.location.hash) {
+  const bannerImage = document.querySelector('.banner-image');
+  const header = document.querySelector('.header');
+  const scrollPastBanner = () => {
+    if (!header) return;
+    window.scrollTo(0, Math.round(header.getBoundingClientRect().top + window.scrollY));
+  };
+
+  if (bannerImage?.complete && bannerImage.naturalWidth) {
+    requestAnimationFrame(scrollPastBanner);
+  } else {
+    bannerImage?.addEventListener('load', () => requestAnimationFrame(scrollPastBanner), { once: true });
+  }
+}
+
 if (burger && navLinks) {
   burger.addEventListener('click', () => {
     navLinks.classList.toggle('open');
   });
 }
+
+const navToolMenus = document.querySelectorAll('.nav-tools');
+document.addEventListener('click', event => {
+  navToolMenus.forEach(menu => {
+    if (menu.open && !menu.contains(event.target)) menu.open = false;
+  });
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') navToolMenus.forEach(menu => { menu.open = false; });
+});
 
 // Smooth scroll for anchor links
 const links = document.querySelectorAll('a[href^="#"]');

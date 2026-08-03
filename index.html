@@ -10,18 +10,18 @@
         <meta name="canonical" href="https://clintonalden.com/" />
         
         <!-- Open Graph / Social Sharing -->
-        <meta property="og:type" content="profile" />
-        <meta property="og:title" content="Clinton Alden Consulting — Hydrometeorological Services" />
-        <meta property="og:description" content="Hydrometeorological consulting specializing in weather data analysis, snowpack dynamics, and avalanche education." />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Clinton Alden" />
+        <meta property="og:title" content="Clinton Alden | Hydrometeorology and Mountain Weather" />
+        <meta property="og:description" content="Mountain meteorologist and snow hydrologist specializing in environmental data, mountain weather, and avalanche education." />
         <meta property="og:url" content="https://clintonalden.com/" />
         <meta property="og:image" content="https://clintonalden.com/assets/headshot.jpeg" />
         <meta property="og:image:alt" content="Headshot of Clinton Alden" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="1200" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Clinton Alden Consulting — Hydrometeorological Services" />
-        <meta name="twitter:description" content="Hydrometeorological data analysis, weather consulting, and avalanche education." />
+        <meta name="twitter:title" content="Clinton Alden | Hydrometeorology and Mountain Weather" />
+        <meta name="twitter:description" content="Environmental data, mountain weather, snow hydrology, and avalanche education." />
         <meta name="twitter:image" content="https://clintonalden.com/assets/headshot.jpeg" />
+        <meta name="twitter:image:alt" content="Headshot of Clinton Alden" />
         
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,16 +102,11 @@
                 <div class="logo">
                     <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
                         <img src="assets/favicon.svg" alt="Snowflake logo" class="logo-icon" />
+                        <span class="brand-name">Clinton Alden Consulting</span>
                     </a>
                 </div>
                 <nav class="nav-links">
-                    <a href="#expertise">Expertise</a>
-                    <a href="#credentials">Credentials</a>
-                    <a href="#consulting">Consulting</a>
-                    <a href="#contact">Contact</a>
-                    <a href="cv.html">CV</a>
-                    <a href="adventures.html">Adventures</a>
-                    <a href="radiosonde.html">Radiosonde</a>
+                    <a href="index.html" class="active">About Me</a><a href="cv.html">Consulting</a><a href="adventures.html">Adventures</a><details class="nav-tools"><summary>Weather Tools</summary><div><a href="radiosonde.html">Radiosonde</a><a href="firetools.html">Fire Map</a></div></details>
                 </nav>
                 <button class="burger" aria-label="Toggle Navigation">Menu</button>
             </div>
@@ -122,86 +117,54 @@
                 <div class="container">
                     <div class="hero-content">
                         <div>
-                            <p class="kicker reveal">Environmental Data · Hydrometeorology · Science Education</p>
                             <h1 class="reveal">Hi, I'm Clinton Alden.</h1>
-                            <p class="reveal" id="summary">I help businesses and organizations understand environmental data so they can deliver high-quality products to their clients and make informed decisions.</p>
-                            <p class="reveal">I'm an atmospheric scientist and hydrologist studying weather, water, and climate, with a focus on the Western United States.</p>
-                            <div class="cta">
-                                <a class="btn primary" href="#consulting">Hydrometeorological Consulting</a>
-                                <a class="btn" href="cv.html">View CV</a>
-                                <a class="btn" href="#contact">Contact</a>
-                            </div>
+                            <p class="reveal">I'm an atmospheric scientist and hydrologist studying weather, water, and climate, with a focus on the Western United States. I help businesses and organizations make better use of environmental data.</p>
                         </div>
                         <img src="assets/headshot.jpeg" alt="Clinton Alden" class="headshot headshot-hero" />
                     </div>
                 </div>
             </section>
 
-            <section class="section" id="expertise">
+            <section class="section" aria-label="Explore Clinton Alden's work">
                 <div class="container">
-                    <h2>Expertise</h2>
-                    <p class="subtitle">Research, forecasting, education, and consulting experience.</p>
-                    <div class="expertise-list reveal" aria-label="Areas of expertise">
-                        <span class="expertise-pill">Mountain hydrology</span>
-                        <span class="expertise-pill">Avalanche education</span>
-                        <span class="expertise-pill">Satellite remote sensing</span>
-                        <span class="expertise-pill">Atmospheric sciences</span>
-                        <span class="expertise-pill">Weather forecasting</span>
-                        <span class="expertise-pill">Science communication</span>
-                        <span class="expertise-pill">Environmental consulting</span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="credentials">
-                <div class="container">
-                    <h2>Background</h2>
-                    <p class="subtitle">Selected background. Full details are available on my <a href="cv.html">CV</a>.</p>
-                    <div class="bio-copy reveal">
-                        <p>My research background includes degrees in Atmospheric Science and Civil Engineering/Hydrology, and I am working toward a PhD in Hydrology at the University of Washington.</p>
-                        <p>Through past work, I've forecast winter weather and mountain meteorology for both general public recreationists and water resource applications through a public blog and work at the Center for Western Weather and Water Extremes at UC San Diego, respectively.</p>
-                        <p>Beyond research, I have extensive experience communicating science via news media and as an avalanche educator. In 2026, I was recognized as the Avalanche Awareness Instructor of the Year by the Northwest Avalanche Center and won the David Miller Prize for Best Student Poster at the joint Western/Eastern Snow Conference for my research and communication skills.</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="consulting">
-                <div class="container">
-                    <h2>Hydrometeorological Consulting</h2>
-                    <p class="subtitle">Technical support for teams working with weather, snow, and water data.</p>
-                    <div class="consulting-layout">
-                        <div class="consulting-copy reveal">
-                            <p>I'm available for project-based consulting, especially involving hydrometeorological data analysis and science education.</p>
-                            <p>Through Clinton Alden Consulting, my expertise helps guide businesses and organizations to best leverage environmental datasets for many purposes.</p>
-                        </div>
-                        <article class="card reveal">
-                            <h3>Current Focus</h3>
-                            <ul class="plain-list">
-                                <li>Hydrometeorological data analysis</li>
-                                <li>Science education</li>
-                            </ul>
-                            <div class="tags">
-                                <span class="tag">Environmental Data</span>
-                                <span class="tag">Hydrometeorology</span>
-                                <span class="tag">Education</span>
+                    <div class="grid" aria-label="Site sections">
+                        <article class="card home-card home-card--consulting reveal">
+                            <img class="home-card-image" src="assets/headshot.jpeg" alt="Clinton Alden" />
+                            <h3>Consulting</h3>
+                            <p>Hydrometeorological support for teams working with weather, snow, water, and environmental data.</p>
+                            <div class="cta">
+                                <a class="btn primary" href="cv.html">Consulting</a>
                             </div>
                         </article>
-                    </div>
-                </div>
-            </section>
-
-            <section class="section" id="contact">
-                <div class="container">
-                    <h2>Contact</h2>
-                    <p class="subtitle">For consulting, collaboration, or media inquiries.</p>
-                    <p class="reveal">If you have a hydrometeorological question, a dataset that needs careful interpretation, or a project where snow and weather expertise would help, send me a note.</p>
-                    <p class="reveal" id="contact-details">
-                        <span id="contact-location"></span>
-                    </p>
-                    <div class="cta">
-                        <button id="consulting-email-btn" class="btn primary" onclick="revealConsultingEmail()">Email Me</button>
-                        <a class="btn" href="https://www.linkedin.com/in/clinton-alden-5473ba226/" target="_blank" rel="noopener">LinkedIn</a>
-                        <a class="btn" href="https://github.com/clinton-alden" target="_blank" rel="noopener">GitHub</a>
+                        <article class="card home-card home-card--weather reveal">
+                            <figure class="home-card-map">
+                                <img class="home-card-image" src="assets/weather-map-preview.png" alt="Satellite basemap of the Western United States" />
+                                <span class="weather-preview-marker" style="--x: 27%; --y: 30%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 34%; --y: 36%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 41%; --y: 27%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 47%; --y: 42%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 52%; --y: 33%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 57%; --y: 47%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 61%; --y: 26%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 66%; --y: 39%;" aria-hidden="true"></span>
+                                <span class="weather-preview-marker" style="--x: 71%; --y: 31%;" aria-hidden="true"></span>
+                                <figcaption>Imagery &copy; Esri</figcaption>
+                            </figure>
+                            <h3>Weather Dashboards</h3>
+                            <p>Explore interactive radiosonde soundings and fire-weather data tools.</p>
+                            <div class="cta">
+                                <a class="btn" href="radiosonde.html">Radiosonde</a>
+                                <a class="btn" href="firetools.html">Fire Tools</a>
+                            </div>
+                        </article>
+                        <article class="card home-card home-card--adventures reveal">
+                            <img class="home-card-image" src="assets/rubys_ridge.jpeg" alt="Mountain adventure in the Pacific Northwest" />
+                            <h3>Adventures</h3>
+                            <p>Mountain days on skis, bikes, trails, and rock.</p>
+                            <div class="cta">
+                                <a class="btn" href="adventures.html">Adventures</a>
+                            </div>
+                        </article>
                     </div>
                 </div>
             </section>
@@ -212,13 +175,5 @@
         </footer>
 
         <script src="assets/script.js" defer></script>
-        <script>
-            function revealConsultingEmail() {
-                const btn = document.getElementById('consulting-email-btn');
-                const email = 'clintonaldenconsulting@gmail.com';
-                btn.innerHTML = `<a href="mailto:${email}" style="color: var(--accent); text-decoration: none;">${email}</a>`;
-                btn.onclick = null;
-            }
-        </script>
     </body>
 </html>

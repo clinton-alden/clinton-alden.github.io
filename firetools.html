@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Fire Weather Tools | Clinton Alden</title>
+        <meta name="description" content="Interactive VIIRS and MODIS fire detections, active incidents, and fuel-moisture data for the Western United States." />
+        <meta name="author" content="Clinton Alden" />
+        <meta name="canonical" href="https://clintonalden.com/firetools.html" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Clinton Alden" />
+        <meta property="og:title" content="Fire Weather Tools | Clinton Alden" />
+        <meta property="og:description" content="Map VIIRS and MODIS fire detections, active incidents, and fuel-moisture data." />
+        <meta property="og:url" content="https://clintonalden.com/firetools.html" />
+        <meta property="og:image" content="https://clintonalden.com/assets/banner.jpeg" />
+        <meta property="og:image:alt" content="Mountain landscape" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Fire Weather Tools | Clinton Alden" />
+        <meta name="twitter:description" content="Map VIIRS and MODIS fire detections, active incidents, and fuel-moisture data." />
+        <meta name="twitter:image" content="https://clintonalden.com/assets/banner.jpeg" />
+        <meta name="twitter:image:alt" content="Mountain landscape" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="assets/styles.css" />
+        <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon.png" />
+        <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+        <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
+        <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="assets/firms.js" defer></script>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "Fire Weather Tools",
+          "url": "https://clintonalden.com/firetools.html",
+          "applicationCategory": "WeatherApplication",
+          "operatingSystem": "Web",
+          "description": "An interactive map of VIIRS and MODIS fire detections, active incidents, and fuel-moisture data.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+        </script>
+    </head>
+    <body class="skip-banner-on-load">
+        <div class="banner">
+            <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
+        </div>
+        <header class="header">
+            <div class="container nav">
+                <div class="logo">
+                    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+                        <img src="assets/favicon.svg" alt="Snowflake logo" class="logo-icon" />
+                        <span class="brand-name">Clinton Alden Consulting</span>
+                    </a>
+                </div>
+                <nav class="nav-links">
+                    <a href="index.html">About Me</a><a href="cv.html">Consulting</a><a href="adventures.html">Adventures</a><details class="nav-tools active"><summary>Weather Tools</summary><div><a href="radiosonde.html">Radiosonde</a><a href="firetools.html" class="active">Fire Map</a></div></details>
+                </nav>
+                <button class="burger" aria-label="Toggle Navigation">Menu</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="section fire-hero">
+                <div class="container">
+                    <p class="kicker reveal">Satellite Fire Retrievals and Incident Information</p>
+                    <h1 class="reveal">Fire Tools</h1>
+                    <p class="subtitle reveal">This page aggregates many of the fire datasets useful for monitoring incidents.</p>
+                </div>
+            </section>
+
+            <section class="section fire-workbench" aria-labelledby="fire-controls-title">
+                <div class="fire-shell">
+                    <aside class="fire-controls card reveal">
+                        <h2 id="fire-controls-title">Data Layers</h2>
+
+                        <fieldset class="fire-fieldset">
+                            <legend>Satellite Retrievals</legend>
+                            <label class="checkbox-label"><input id="show-fire-data" type="checkbox" checked /><span>Show satellite detections</span></label>
+                            <details class="fire-options"><summary>Satellite retrieval options</summary>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="fire-source" value="VIIRS_SNPP_NRT" checked />
+                                <span>VIIRS SNPP NRT</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="fire-source" value="VIIRS_NOAA20_NRT" checked />
+                                <span>VIIRS NOAA-20 NRT</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="fire-source" value="VIIRS_NOAA21_NRT" checked />
+                                <span>VIIRS NOAA-21 NRT</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="fire-source" value="MODIS_NRT" checked />
+                                <span>MODIS NRT</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="fire-source" value="VIIRS_SNPP_SP" />
+                                <span>VIIRS SNPP SP</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="fire-source" value="MODIS_SP" />
+                                <span>MODIS SP</span>
+                            </label>
+                            </details>
+                        </fieldset>
+
+                        <fieldset class="fire-fieldset">
+                            <legend>Incidents</legend>
+                            <label class="checkbox-label"><input id="show-incidents" type="checkbox" checked /><span>Show current incidents</span></label>
+                            <label for="incident-filter">Display</label>
+                            <select id="incident-filter">
+                                <option value="all">All fires</option>
+                                <option value="major">Major fires (>= 1,000 acres)</option>
+                            </select>
+                            <label for="incident-state">State</label>
+                            <select id="incident-state"><option value="">All states</option></select>
+                        </fieldset>
+
+                        <fieldset class="fire-fieldset">
+                            <legend>Fuel Moisture</legend>
+                            <label class="checkbox-label">
+                                <input id="show-fuel-moisture" type="checkbox" />
+                                <span>Show NFDRS station values</span>
+                            </label>
+                            <details class="fire-options">
+                                <summary>Fuel moisture options</summary>
+                            <label for="fuel-moisture-class">Time lag</label>
+                            <select id="fuel-moisture-class">
+                                <option value="ten">10-hour</option>
+                                <option value="hundred">100-hour</option>
+                                <option value="thousand">1000-hour</option>
+                            </select>
+                            <label for="fuel-moisture-date">Observation date</label>
+                            <input id="fuel-moisture-date" type="date" />
+                            <button id="load-fuel-moisture" class="btn" type="button">Load fuel moisture</button>
+                            <p id="fuel-moisture-status" class="fire-status">Operational NFDRS daily minima. 10-hour inputs may include RAWS fuel-stick observations; 100- and 1000-hour values are modeled.</p>
+                            </details>
+                        </fieldset>
+
+                        <div class="fire-control-grid">
+                            <div>
+                                <label for="fire-day-range">Days</label>
+                                <select id="fire-day-range">
+                                    <option value="1">1</option>
+                                    <option value="2" selected>2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="fire-date">Start date UTC</label>
+                                <input id="fire-date" type="date" />
+                            </div>
+                        </div>
+
+                        <label for="fire-min-frp">Min FRP (MW)</label>
+                        <input id="fire-min-frp" type="range" min="0" max="500" step="5" value="5" />
+                        <div class="fire-range-meta">
+                            <span id="fire-min-frp-label">5 MW</span>
+                            <button id="fire-reset-view" type="button" class="link-button">Western US</button>
+                        </div>
+
+                        <button id="load-fire-data" class="btn primary" type="button">Load map view</button>
+                        <button id="download-fire-csv" class="btn" type="button" disabled>Download CSV</button>
+                        <p id="fire-status" class="fire-status" role="status">Loading default VIIRS and MODIS detections from the last 2 UTC days...</p>
+
+                        <div class="fire-source-note">
+                            <a href="https://firms.modaps.eosdis.nasa.gov/api/area/" target="_blank" rel="noopener">FIRMS Area API</a>
+                            <span id="fire-bounds-label">Current map bounds pending.</span>
+                        </div>
+                    </aside>
+
+                    <section class="fire-map-panel reveal" aria-label="Interactive active fire map">
+                        <div class="fire-toolbar">
+                            <div>
+                                <span id="fire-count">0 detections</span>
+                                <span id="fire-updated">No query yet</span>
+                            </div>
+                            <div class="fire-legend" aria-label="Fire detection color legend">
+                                <span><i class="fire-recent"></i>Last 6 h</span>
+                                <span><i class="fire-today"></i>6-24 h</span>
+                                <span><i class="fire-older"></i>Older</span>
+                            </div>
+                            <div id="fuel-moisture-legend" class="fire-legend" hidden aria-label="Fuel moisture color legend">
+                                <span><i class="fuel-dry"></i>Dry &lt; 7%</span>
+                                <span><i class="fuel-elevated"></i>7-12%</span>
+                                <span><i class="fuel-moist"></i>Moist &gt; 12%</span>
+                            </div>
+                        </div>
+                        <div id="fire-map" class="fire-map"></div>
+                        <div class="fire-results">
+                            <div class="fire-results-header">
+                                <h2>Current Incidents</h2>
+                                <span id="incident-summary">Loading incidents...</span>
+                            </div>
+                            <ol id="incident-list" class="fire-detection-list"></ol>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container">&copy; <span id="year"></span> Clinton Alden</div>
+        </footer>
+
+        <script src="assets/script.js" defer></script>
+    </body>
+</html>

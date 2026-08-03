@@ -1,0 +1,683 @@
+const FIRMS_API_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
+const FIRMS_MAP_KEY = 'ba50bf93112cabcd9ed7c7f5e71f631a';
+const FEMS_API_URL = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
+const INCIDENT_API_BASE = 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Wildfires_v1/FeatureServer';
+const WESTERN_US_VIEW = {
+  center: [41.8, -115.5],
+  zoom: 5,
+  bounds: [[31.5, -125.5], [49.5, -102]]
+};
+
+const state = {
+  map: null,
+  layer: null,
+  fuelLayer: null,
+  incidentLayer: null,
+  incidentData: null,
+  filteredIncidents: [],
+  incidentListRows: [],
+  fuelRows: [],
+  fuelDate: '',
+  allRows: [],
+  visibleRows: [],
+  lastCsv: '',
+  lastSources: []
+};
+
+const els = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+  cacheElements();
+  if (!els.map || typeof L === 'undefined') return;
+
+  initMap();
+  initControls();
+  updateBoundsLabel();
+  loadCachedFireData();
+  loadIncidents();
+  window.setInterval(loadIncidents, 60 * 60 * 1000);
+});
+
+function cacheElements() {
+  [
+    'fire-day-range',
+    'fire-date',
+    'fire-min-frp',
+    'fire-min-frp-label',
+    'fire-reset-view',
+    'load-fire-data',
+    'download-fire-csv',
+    'fire-status',
+    'fire-bounds-label',
+    'fire-count',
+    'fire-updated',
+    'show-fire-data',
+    'show-fuel-moisture',
+    'show-incidents',
+    'incident-filter',
+    'incident-state',
+    'incident-summary',
+    'incident-list',
+    'fuel-moisture-class',
+    'fuel-moisture-date',
+    'load-fuel-moisture',
+    'fuel-moisture-status',
+    'fuel-moisture-legend'
+  ].forEach(id => {
+    els[toCamel(id)] = document.getElementById(id);
+  });
+  els.map = document.getElementById('fire-map');
+}
+
+function toCamel(id) {
+  return id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function initMap() {
+  state.map = L.map(els.map, {
+    preferCanvas: true,
+    zoomControl: true
+  }).fitBounds(WESTERN_US_VIEW.bounds);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+  }).addTo(state.map);
+
+  state.layer = L.layerGroup().addTo(state.map);
+  state.fuelLayer = L.layerGroup().addTo(state.map);
+  state.incidentLayer = L.layerGroup().addTo(state.map);
+  state.map.on('moveend', updateBoundsLabel);
+}
+
+async function loadIncidents() {
+  try {
+    const [incidents, perimeters] = await Promise.all([0, 1].map(async layerId => {
+      const sizeField = layerId === 0 ? 'DailyAcres' : 'GISAcres';
+      const where = `IncidentTypeCategory%3D%27WF%27%20AND%20${sizeField}%3E%3D50`;
+      const response = await fetch(`${INCIDENT_API_BASE}/${layerId}/query?where=${where}&outFields=*&f=geojson`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Incident layer ${layerId} unavailable.`);
+      return response.json();
+    }));
+    renderIncidents({ incidents, perimeters });
+  } catch (error) {
+    try {
+      const response = await fetch('assets/live/incidents.json', { cache: 'no-store' });
+      if (!response.ok) throw error;
+      renderIncidents(await response.json());
+    } catch {
+      console.warn('Incident layer unavailable.', error);
+    }
+  }
+}
+
+function renderIncidents(data) {
+    state.incidentData = data;
+    state.incidentLayer.clearLayers();
+    populateIncidentStates(data.incidents.features || []);
+    const incidents = (data.incidents.features || []).filter(incidentMatches);
+    state.filteredIncidents = incidents;
+    if (!els.showIncidents.checked) {
+      renderMarkers();
+      renderIncidentList();
+      return;
+    }
+    const majorOnly = els.incidentFilter.value === 'major';
+    L.geoJSON(data.perimeters, {
+      filter: feature => incidents.some(incident => incident.properties.IncidentName === feature.properties.IncidentName),
+      style: { color: '#fb7185', weight: 2, fillColor: '#ef4444', fillOpacity: 0.12 },
+      onEachFeature: (feature, layer) => layer.bindPopup(incidentPopup(feature.properties))
+    }).addTo(state.incidentLayer);
+    L.geoJSON(data.incidents, {
+      filter: incidentMatches,
+      pointToLayer: (feature, latlng) => L.marker(latlng, {
+        icon: L.divIcon({ className: 'incident-fire-icon', html: '<span aria-hidden="true">&#128293;</span>', iconSize: [24, 24], iconAnchor: [12, 12] })
+      }),
+      onEachFeature: (feature, layer) => layer.bindPopup(incidentPopup(feature.properties))
+    }).addTo(state.incidentLayer);
+    renderMarkers();
+    renderIncidentList();
+}
+
+function incidentMatches(feature) {
+  const properties = feature.properties || {};
+  const majorOnly = els.incidentFilter.value === 'major';
+  const stateFilter = els.incidentState.value;
+  return (!majorOnly || incidentAcres(properties) >= 1000) && (!stateFilter || properties.POOState === stateFilter);
+}
+
+function populateIncidentStates(features) {
+  if (els.incidentState.options.length > 1) return;
+  [...new Set(features.map(feature => feature.properties?.POOState).filter(Boolean))].sort().forEach(stateCode => {
+    els.incidentState.add(new Option(stateCode.replace(/^US-/, ''), stateCode));
+  });
+}
+
+function renderIncidentList() {
+  const rows = [...state.filteredIncidents].sort((a, b) => incidentAcres(b.properties) - incidentAcres(a.properties));
+  state.incidentListRows = rows;
+  els.incidentSummary.textContent = `${rows.length.toLocaleString()} incident${rows.length === 1 ? '' : 's'}`;
+  els.incidentList.innerHTML = rows.slice(0, 30).map((feature, index) => {
+    const properties = feature.properties || {};
+    const name = properties.IncidentName || 'Unnamed incident';
+    const acres = incidentAcres(properties);
+    const containment = properties.PercentContained;
+    return `<li><button type="button" class="incident-list-button" data-incident-index="${index}"><strong>${escapeHtml(name)}</strong><span>${properties.POOState?.replace('US-', '') || 'US'} | ${formatNumber(acres)} acres${containment !== null && containment !== undefined ? ` | ${formatNumber(containment)}% contained` : ''}</span></button></li>`;
+  }).join('');
+}
+
+function focusIncident(index) {
+  const feature = state.incidentListRows[index];
+  const [longitude, latitude] = feature?.geometry?.coordinates || [];
+  if (Number.isFinite(latitude) && Number.isFinite(longitude)) state.map.setView([latitude, longitude], 10);
+}
+
+function incidentAcres(properties = {}) {
+  return Number(properties.DailyAcres || properties.GISAcres || properties.CalculatedAcres || 0);
+}
+
+function incidentPopup(properties = {}) {
+  const name = properties.IncidentName || properties.Incident || properties.FireName || 'Active incident';
+  const acres = properties.DailyAcres || properties.GISAcres || properties.IncidentSize || properties.CalculatedAcres || properties.Acres;
+  const containment = properties.PercentContained || properties.PercentPerimeterToBeContained;
+  const updated = properties.ModifiedOnDateTime || properties.DateCurrent;
+  const inciwebUrl = `https://inciweb.wildfire.gov/accessible-view?combine=${encodeURIComponent(name)}`;
+  return `<div class="fire-popup"><strong>${escapeHtml(name)}</strong><span>${acres ? `${formatNumber(acres)} acres` : 'Acreage unavailable'}</span><span>${containment !== undefined && containment !== null ? `${formatNumber(containment)}% contained` : 'Containment unavailable'}</span><span>${updated ? `IRWIN/NIFC updated ${formatDateTime(updated)}` : 'Update time unavailable'}</span><a href="${inciwebUrl}" target="_blank" rel="noopener">Find on InciWeb</a></div>`;
+}
+
+function initControls() {
+  const today = new Date().toISOString().slice(0, 10);
+  els.fireDate.max = today;
+  els.fuelMoistureDate.max = today;
+  els.fuelMoistureDate.value = today;
+
+  els.fireMinFrp.addEventListener('input', () => {
+    els.fireMinFrpLabel.textContent = `${els.fireMinFrp.value} MW`;
+    renderRows();
+  });
+
+  els.loadFireData.addEventListener('click', () => loadFireData());
+  els.downloadFireCsv.addEventListener('click', downloadCsv);
+  els.fireResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
+  els.showFireData.addEventListener('change', renderMarkers);
+  els.showIncidents.addEventListener('change', () => {
+    if (state.incidentData) renderIncidents(state.incidentData);
+  });
+  els.incidentFilter.addEventListener('change', () => {
+    if (state.incidentData) renderIncidents(state.incidentData);
+  });
+  els.incidentState.addEventListener('change', () => {
+    if (state.incidentData) {
+      renderIncidents(state.incidentData);
+      const selected = state.filteredIncidents[0];
+      if (selected) focusIncident(0);
+    }
+  });
+  els.incidentList.addEventListener('click', event => {
+    const button = event.target.closest('[data-incident-index]');
+    if (button) focusIncident(Number(button.dataset.incidentIndex));
+  });
+  els.loadFuelMoisture.addEventListener('click', loadFuelMoisture);
+  els.showFuelMoisture.addEventListener('change', () => {
+    if (els.showFuelMoisture.checked && state.fuelRows.length === 0) {
+      loadFuelMoisture();
+    } else {
+      renderFuelMarkers();
+    }
+  });
+  els.fuelMoistureClass.addEventListener('change', renderFuelMarkers);
+}
+
+async function loadCachedFireData() {
+  try {
+    const response = await fetch('assets/live/firms.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Cached fire data unavailable.');
+    const cached = await response.json();
+    state.lastSources = cached.sources || [];
+    state.allRows = (cached.rows || []).map(row => normalizeRow(row, row.source))
+      .filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
+    state.lastCsv = rowsToCsv(state.allRows);
+    renderRows();
+    els.downloadFireCsv.disabled = state.lastCsv.length === 0;
+    els.fireUpdated.textContent = `Cached ${new Date(cached.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    setStatus(`Loaded ${state.allRows.length.toLocaleString()} cached FIRMS detections.`);
+  } catch {
+    loadFireData({ useDefaultBounds: true });
+  }
+}
+
+async function loadFuelMoisture() {
+  const date = els.fuelMoistureDate.value;
+  if (!date) {
+    setFuelStatus('Choose an observation date.', true);
+    return;
+  }
+
+  setFuelLoading(true);
+  els.showFuelMoisture.checked = true;
+  setFuelStatus(`Fetching NFDRS station values for ${date}...`);
+
+  try {
+    const cached = await loadCachedFuelMoisture(date);
+    if (cached) {
+      state.fuelDate = cached.date;
+      state.fuelRows = cached.rows || [];
+      renderFuelMarkers();
+      setFuelStatus(`Loaded ${state.fuelRows.length.toLocaleString()} cached RAWS stations for ${cached.date}.`);
+      return;
+    }
+    const result = await fetchFems(`
+      query {
+        nfdrMinMax(startDate: "${date}", endDate: "${date}", nfdrType: "O", per_page: 20000) {
+          data {
+            station_id
+            summary_date
+            ten_hr_tl_fuel_moisture_min
+            hun_hr_tl_fuel_moisture_min
+            thou_hr_tl_fuel_moisture_min
+          }
+        }
+      }
+    `);
+    const measurements = uniqueFuelMeasurements(result.data?.nfdrMinMax?.data || []);
+
+    if (measurements.length === 0) {
+      state.fuelRows = [];
+      renderFuelMarkers();
+      setFuelStatus(`No NFDRS observations were available for ${date}.`, true);
+      return;
+    }
+
+    const stationIds = measurements.map(row => row.station_id);
+    const stationResult = await fetchFems(`
+      query {
+        stationMetaData(stationIds: "${stationIds.join(',')}", networkName: "RAWS", per_page: 3000) {
+          data { station_id station_name latitude longitude state }
+        }
+      }
+    `);
+    const stations = stationResult.data?.stationMetaData?.data || [];
+    const stationsById = new Map(stations.map(station => [station.station_id, station]));
+
+    state.fuelDate = date;
+    state.fuelRows = measurements.map(row => ({ ...row, ...stationsById.get(row.station_id) }))
+      .filter(row => Number.isFinite(Number(row.latitude)) && Number.isFinite(Number(row.longitude)));
+    renderFuelMarkers();
+    setFuelStatus(`Loaded ${state.fuelRows.length.toLocaleString()} RAWS stations for ${date}.`);
+  } catch (error) {
+    console.error(error);
+    setFuelStatus(error.message || 'Unable to fetch NFDRS fuel moisture.', true);
+  } finally {
+    setFuelLoading(false);
+  }
+}
+
+async function loadCachedFuelMoisture(date) {
+  try {
+    const response = await fetch('assets/live/fuel-moisture.json', { cache: 'no-store' });
+    if (!response.ok) return null;
+    const cached = await response.json();
+    return cached.date === date ? cached : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFems(query) {
+  const response = await fetch(FEMS_API_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ query })
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.errors?.length) {
+    throw new Error(payload.errors?.[0]?.message || `FEMS returned ${response.status}.`);
+  }
+  return payload;
+}
+
+function uniqueFuelMeasurements(rows) {
+  const measurements = new Map();
+  rows.forEach(row => {
+    if (!measurements.has(row.station_id)) measurements.set(row.station_id, row);
+  });
+  return [...measurements.values()];
+}
+
+async function loadFireData(options = {}) {
+  const mapKey = FIRMS_MAP_KEY;
+  const sources = getSelectedSources();
+  const dayRange = els.fireDayRange.value;
+  const startDate = els.fireDate.value;
+  const bounds = options.useDefaultBounds ? '-125,31,-102,49' : getApiBounds();
+
+  if (sources.length === 0) {
+    setStatus('Select at least one fire source.', true);
+    return;
+  }
+
+  setLoading(true);
+  setStatus(`Fetching ${sources.length} source${sources.length === 1 ? '' : 's'} for ${bounds}...`);
+
+  try {
+    const responses = [];
+    for (const source of sources) {
+      const csv = await fetchSource({ mapKey, source, bounds, dayRange, startDate });
+      responses.push({ source, csv });
+    }
+
+    state.lastSources = sources;
+    state.allRows = responses.flatMap(({ source, csv }) => parseCsv(csv).map(row => normalizeRow(row, source)));
+    state.allRows = state.allRows.filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
+    state.lastCsv = rowsToCsv(state.allRows);
+    renderRows();
+    setStatus(`Loaded ${state.allRows.length.toLocaleString()} raw detections from NASA FIRMS.`);
+    els.fireUpdated.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    els.downloadFireCsv.disabled = state.lastCsv.length === 0;
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message || 'Unable to fetch FIRMS detections.', true);
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function fetchSource({ mapKey, source, bounds, dayRange, startDate }) {
+  const datePart = startDate ? `/${encodeURIComponent(startDate)}` : '';
+  const url = `${FIRMS_API_BASE}/${encodeURIComponent(mapKey)}/${source}/${bounds}/${dayRange}${datePart}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`${source}: FIRMS returned ${response.status}. ${text.slice(0, 120)}`);
+  }
+  if (/Invalid MAP_KEY|MAP_KEY/i.test(text) && !text.includes(',')) {
+    throw new Error(`${source}: ${text.trim()}`);
+  }
+  return text;
+}
+
+function getSelectedSources() {
+  return Array.from(document.querySelectorAll('input[name="fire-source"]:checked')).map(input => input.value);
+}
+
+function getApiBounds() {
+  const bounds = state.map.getBounds();
+  const west = clamp(bounds.getWest(), -180, 180);
+  const south = clamp(bounds.getSouth(), -90, 90);
+  const east = clamp(bounds.getEast(), -180, 180);
+  const north = clamp(bounds.getNorth(), -90, 90);
+  return [west, south, east, north].map(value => value.toFixed(4)).join(',');
+}
+
+function updateBoundsLabel() {
+  if (!state.map || !els.fireBoundsLabel) return;
+  els.fireBoundsLabel.textContent = `Bounds: ${getApiBounds()}`;
+}
+
+function parseCsv(csv) {
+  const rows = csv.trim().split(/\r?\n/);
+  if (rows.length < 2) return [];
+  const headers = splitCsvLine(rows[0]).map(header => header.trim().replace(/^\uFEFF/, ''));
+  return rows.slice(1).map(line => {
+    const values = splitCsvLine(line);
+    return headers.reduce((row, header, index) => {
+      row[header] = values[index] || '';
+      return row;
+    }, {});
+  });
+}
+
+function splitCsvLine(line) {
+  const values = [];
+  let current = '';
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      values.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+  return values;
+}
+
+function normalizeRow(row, source) {
+  const frp = Number(row.frp);
+  const acqTime = String(row.acq_time || '').padStart(4, '0');
+  const acquiredAtMs = Date.parse(`${row.acq_date || ''}T${acqTime.slice(0, 2)}:${acqTime.slice(2, 4)}:00Z`);
+  const brightness = row.bright_ti4 || row.brightness || row.bright_t31 || '';
+  return {
+    ...row,
+    source,
+    latitude: Number(row.latitude),
+    longitude: Number(row.longitude),
+    frp: Number.isFinite(frp) ? frp : 0,
+    confidence: row.confidence || 'n/a',
+    brightness,
+    acquiredAtMs,
+    acquiredAt: `${row.acq_date || 'unknown'} ${acqTime.slice(0, 2)}:${acqTime.slice(2, 4)} UTC`
+  };
+}
+
+function renderRows() {
+  const minFrp = Number(els.fireMinFrp.value);
+  state.visibleRows = state.allRows.filter(row => row.frp >= minFrp);
+  renderMarkers();
+  renderSummary(minFrp);
+}
+
+function renderMarkers() {
+  state.layer.clearLayers();
+  if (!els.showFireData.checked) return;
+
+  state.visibleRows.forEach(row => {
+    const marker = L.rectangle(fireFootprint(row, els.showIncidents.checked ? 1 : 4), {
+      stroke: true,
+      color: row.daynight === 'N' ? '#f8fafc' : '#3b1d0a',
+      weight: 1,
+      fillColor: recencyColor(row.acquiredAtMs),
+      fillOpacity: 0.68
+    });
+    marker.bindPopup(popupHtml(row));
+    marker.addTo(state.layer);
+  });
+}
+
+function fireFootprint(row, scale = 1) {
+  const scanKm = Number(row.scan) || 1;
+  const trackKm = Number(row.track) || 1;
+  const latitudeHalfSpan = trackKm * scale / 222;
+  const longitudeHalfSpan = scanKm * scale / (222 * Math.max(Math.cos(row.latitude * Math.PI / 180), 0.2));
+  return [
+    [row.latitude - latitudeHalfSpan, row.longitude - longitudeHalfSpan],
+    [row.latitude + latitudeHalfSpan, row.longitude + longitudeHalfSpan]
+  ];
+}
+
+function renderFuelMarkers() {
+  state.fuelLayer.clearLayers();
+  const showFuel = els.showFuelMoisture.checked;
+  els.fuelMoistureLegend.hidden = !showFuel;
+  if (!showFuel) return;
+
+  const field = fuelMoistureField();
+  state.fuelRows.forEach(row => {
+    const moisture = Number(row[field]);
+    if (!Number.isFinite(moisture)) return;
+
+    const marker = L.circleMarker([row.latitude, row.longitude], {
+      radius: 7,
+      color: '#f8fafc',
+      weight: 1.5,
+      fillColor: fuelMoistureColor(moisture),
+      fillOpacity: 0.88
+    });
+    marker.bindPopup(fuelPopupHtml(row, moisture));
+    marker.addTo(state.fuelLayer);
+  });
+}
+
+function fuelMoistureField() {
+  return {
+    ten: 'ten_hr_tl_fuel_moisture_min',
+    hundred: 'hun_hr_tl_fuel_moisture_min',
+    thousand: 'thou_hr_tl_fuel_moisture_min'
+  }[els.fuelMoistureClass.value];
+}
+
+function fuelMoistureLabel() {
+  return {
+    ten: '10-hour NFDRS',
+    hundred: '100-hour NFDRS',
+    thousand: '1000-hour NFDRS'
+  }[els.fuelMoistureClass.value];
+}
+
+function fuelMoistureColor(moisture) {
+  if (moisture < 7) return '#ef4444';
+  if (moisture <= 12) return '#f97316';
+  return '#38bdf8';
+}
+
+function fuelPopupHtml(row, moisture) {
+  return `
+    <div class="fire-popup">
+      <strong>${escapeHtml(row.station_name || `RAWS ${row.station_id}`)}</strong>
+      <span>${escapeHtml(row.state || 'RAWS')} | ${escapeHtml(row.summary_date || state.fuelDate)}</span>
+      <span>${escapeHtml(fuelMoistureLabel())}: ${formatNumber(moisture)}%</span>
+      <span>10-hour NFDRS: ${formatNumber(row.ten_hr_tl_fuel_moisture_min)}%</span>
+      <span>100-hour NFDRS: ${formatNumber(row.hun_hr_tl_fuel_moisture_min)}%</span>
+      <span>1000-hour NFDRS: ${formatNumber(row.thou_hr_tl_fuel_moisture_min)}%</span>
+    </div>
+  `;
+}
+
+function renderSummary(minFrp) {
+  const count = state.visibleRows.length;
+  els.fireCount.textContent = `${count.toLocaleString()} detection${count === 1 ? '' : 's'}`;
+}
+
+function popupHtml(row) {
+  return `
+    <div class="fire-popup">
+      <strong>${escapeHtml(row.source)}</strong>
+      <span>${escapeHtml(row.acquiredAt)}</span>
+      <span>${formatCoordinate(row.latitude)}, ${formatCoordinate(row.longitude)}</span>
+      <span>FRP: ${formatNumber(row.frp)} MW</span>
+      <span>Confidence: ${escapeHtml(String(row.confidence))}</span>
+      <span>Brightness: ${escapeHtml(String(row.brightness || 'n/a'))}</span>
+    </div>
+  `;
+}
+
+function markerRadius(frp) {
+  return clamp(4 + Math.log10(Math.max(frp, 1)) * 3, 4, 15);
+}
+
+function recencyColor(acquiredAtMs) {
+  const ageHours = (Date.now() - acquiredAtMs) / (1000 * 60 * 60);
+  if (!Number.isFinite(ageHours)) return '#64748b';
+  if (ageHours <= 6) return '#ef4444';
+  if (ageHours <= 24) return '#f97316';
+  return '#38bdf8';
+}
+
+function rowsToCsv(rows) {
+  if (!rows.length) return '';
+  const fields = [
+    'source',
+    'latitude',
+    'longitude',
+    'acq_date',
+    'acq_time',
+    'satellite',
+    'instrument',
+    'confidence',
+    'version',
+    'frp',
+    'daynight',
+    'brightness',
+    'scan',
+    'track'
+  ];
+  const lines = rows.map(row => fields.map(field => csvEscape(row[field] || '')).join(','));
+  return [fields.join(','), ...lines].join('\n');
+}
+
+function csvEscape(value) {
+  const text = String(value);
+  if (!/[",\n\r]/.test(text)) return text;
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv() {
+  if (!state.lastCsv) return;
+  const blob = new Blob([state.lastCsv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const stamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+  link.href = url;
+  link.download = `firms-fire-detections-${stamp}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function setLoading(isLoading) {
+  els.loadFireData.disabled = isLoading;
+  els.loadFireData.textContent = isLoading ? 'Loading...' : 'Load map view';
+}
+
+function setStatus(message, isError = false) {
+  els.fireStatus.textContent = message;
+  els.fireStatus.classList.toggle('is-error', isError);
+}
+
+function setFuelLoading(isLoading) {
+  els.loadFuelMoisture.disabled = isLoading;
+  els.loadFuelMoisture.textContent = isLoading ? 'Loading...' : 'Load fuel moisture';
+}
+
+function setFuelStatus(message, isError = false) {
+  els.fuelMoistureStatus.textContent = message;
+  els.fuelMoistureStatus.classList.toggle('is-error', isError);
+}
+
+function formatCoordinate(value) {
+  return Number(value).toFixed(3);
+}
+
+function formatNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toLocaleString(undefined, { maximumFractionDigits: 1 }) : 'n/a';
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'unknown';
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
