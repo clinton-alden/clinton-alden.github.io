@@ -16,6 +16,7 @@ const state = {
   smokeOverlay: null,
   smokeManifest: null,
   smokePlayback: null,
+  smokeTimeElement: null,
   incidentData: null,
   filteredIncidents: [],
   incidentListRows: [],
@@ -97,11 +98,27 @@ function initMap() {
     attribution: 'Tiles &copy; Esri'
   }).addTo(state.map);
 
+  state.map.createPane('smokePane');
+  state.map.getPane('smokePane').style.zIndex = 350;
+  state.map.createPane('roadsPane');
+  state.map.getPane('roadsPane').style.zIndex = 360;
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    pane: 'roadsPane',
+    attribution: 'Roads &copy; Esri'
+  }).addTo(state.map);
+
   state.layer = L.layerGroup().addTo(state.map);
   state.fuelLayer = L.layerGroup().addTo(state.map);
   state.incidentLayer = L.layerGroup().addTo(state.map);
-  state.map.createPane('smokePane');
-  state.map.getPane('smokePane').style.zIndex = 350;
+  const smokeTimeControl = L.control({ position: 'bottomleft' });
+  smokeTimeControl.onAdd = () => {
+    state.smokeTimeElement = L.DomUtil.create('div', 'fire-smoke-time-control');
+    state.smokeTimeElement.hidden = true;
+    L.DomEvent.disableClickPropagation(state.smokeTimeElement);
+    return state.smokeTimeElement;
+  };
+  smokeTimeControl.addTo(state.map);
   state.map.on('moveend', updateBoundsLabel);
 }
 
@@ -300,6 +317,10 @@ function renderSmokeOverlay() {
   els.smokeLegend.hidden = false;
   const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
   els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatSmokeTimes(validTime)} | ${field.label} (${field.units})`;
+  if (state.smokeTimeElement) {
+    state.smokeTimeElement.textContent = `HRRR Smoke F${hourToken} | ${formatSmokeTimes(validTime)}`;
+    state.smokeTimeElement.hidden = false;
+  }
 }
 
 function clearSmokeOverlay() {
@@ -308,6 +329,7 @@ function clearSmokeOverlay() {
     state.smokeOverlay = null;
   }
   els.smokeLegend.hidden = true;
+  if (state.smokeTimeElement) state.smokeTimeElement.hidden = true;
 }
 
 function updateSmokeOpacity() {
@@ -348,9 +370,11 @@ function handleSmokeKeyboard(event) {
   if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement?.tagName)) return;
   if (event.key === 'ArrowRight') {
     event.preventDefault();
+    event.stopImmediatePropagation();
     advanceSmokeFrame(1);
   } else if (event.key === 'ArrowLeft') {
     event.preventDefault();
+    event.stopImmediatePropagation();
     advanceSmokeFrame(-1);
   }
 }
