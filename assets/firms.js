@@ -432,18 +432,21 @@ async function loadFireData(options = {}) {
   setStatus(`Fetching ${sources.length} source${sources.length === 1 ? '' : 's'} for ${bounds}...`);
 
   try {
-    const responses = [];
-    for (const source of sources) {
-      const csv = await fetchSource({ mapKey, source, bounds, dayRange, startDate });
-      responses.push({ source, csv });
-    }
+    const results = await Promise.allSettled(sources.map(async source => ({
+      source,
+      csv: await fetchSource({ mapKey, source, bounds, dayRange, startDate })
+    })));
+    const responses = results.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+    const unavailableSources = results.flatMap((result, index) => result.status === 'rejected' ? [sources[index]] : []);
+    if (responses.length === 0) throw new Error('No selected FIRMS sources were available.');
 
-    state.lastSources = sources;
+    state.lastSources = responses.map(response => response.source);
     state.allRows = responses.flatMap(({ source, csv }) => parseCsv(csv).map(row => normalizeRow(row, source)));
     state.allRows = state.allRows.filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
     state.lastCsv = rowsToCsv(state.allRows);
     renderRows();
-    setStatus(`Loaded ${state.allRows.length.toLocaleString()} raw detections from NASA FIRMS.`);
+    const skipped = unavailableSources.length ? ` Skipped: ${unavailableSources.join(', ')}.` : '';
+    setStatus(`Loaded ${state.allRows.length.toLocaleString()} raw detections from NASA FIRMS.${skipped}`);
     els.fireUpdated.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     els.downloadFireCsv.disabled = state.lastCsv.length === 0;
   } catch (error) {

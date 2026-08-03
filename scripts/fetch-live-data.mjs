@@ -10,18 +10,26 @@ const incidentBase = 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/
 
 await mkdir(outputDirectory, { recursive: true });
 
-const fireResponses = await Promise.all(sources.map(async source => {
+const fireResults = await Promise.allSettled(sources.map(async source => {
   const response = await fetch(`${firmsBase}/${firmsKey}/${source}/${bounds}/2`);
   if (!response.ok) throw new Error(`FIRMS ${source} returned ${response.status}`);
   return { source, csv: await response.text() };
 }));
+const fireResponses = fireResults.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+const unavailableSources = fireResults.flatMap((result, index) => {
+  if (result.status === 'fulfilled') return [];
+  console.warn(`Skipping ${sources[index]}: ${result.reason.message}`);
+  return [sources[index]];
+});
+if (fireResponses.length === 0) throw new Error('All FIRMS sources were unavailable.');
 
 const fireRows = fireResponses.flatMap(({ source, csv }) => parseCsv(csv).map(row => ({ ...row, source })));
 await writeJson('firms.json', {
   generatedAt: new Date().toISOString(),
   bounds,
   days: 2,
-  sources,
+  sources: fireResponses.map(response => response.source),
+  unavailableSources,
   rows: fireRows
 });
 
