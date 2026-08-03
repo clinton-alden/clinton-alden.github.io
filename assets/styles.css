@@ -569,6 +569,9 @@ a:hover { text-decoration: underline; }
   height: 10px;
   border-radius: 50%;
 }
+.fire-legend .smoke-light { background: #fef08a; }
+.fire-legend .smoke-moderate { background: #fb923c; }
+.fire-legend .smoke-dense { background: #be185d; }
 .fire-recent {
   background: #ef4444;
 }

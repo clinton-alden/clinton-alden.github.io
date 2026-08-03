@@ -2,7 +2,7 @@ name: Deploy site and refresh fire data
 
 on:
   schedule:
-    - cron: '17 0,12 * * *'
+    - cron: '20 2,8,14,20 * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -28,6 +28,11 @@ jobs:
         with:
           node-version: 20
       - run: node scripts/fetch-live-data.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check numpy pillow requests scipy eccodes
+      - run: python scripts/fetch-hrrr-smoke.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

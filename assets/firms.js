@@ -13,6 +13,8 @@ const state = {
   layer: null,
   fuelLayer: null,
   incidentLayer: null,
+  smokeOverlay: null,
+  smokeManifest: null,
   incidentData: null,
   filteredIncidents: [],
   incidentListRows: [],
@@ -62,7 +64,14 @@ function cacheElements() {
     'fuel-moisture-date',
     'load-fuel-moisture',
     'fuel-moisture-status',
-    'fuel-moisture-legend'
+    'fuel-moisture-legend',
+    'show-smoke',
+    'smoke-field',
+    'smoke-hour',
+    'smoke-hour-label',
+    'smoke-options',
+    'smoke-status',
+    'smoke-legend'
   ].forEach(id => {
     els[toCamel(id)] = document.getElementById(id);
   });
@@ -87,6 +96,8 @@ function initMap() {
   state.layer = L.layerGroup().addTo(state.map);
   state.fuelLayer = L.layerGroup().addTo(state.map);
   state.incidentLayer = L.layerGroup().addTo(state.map);
+  state.map.createPane('smokePane');
+  state.map.getPane('smokePane').style.zIndex = 350;
   state.map.on('moveend', updateBoundsLabel);
 }
 
@@ -226,6 +237,66 @@ function initControls() {
     }
   });
   els.fuelMoistureClass.addEventListener('change', renderFuelMarkers);
+  els.showSmoke.addEventListener('change', syncSmokeLayer);
+  els.smokeField.addEventListener('change', renderSmokeOverlay);
+  els.smokeHour.addEventListener('input', renderSmokeOverlay);
+}
+
+async function syncSmokeLayer() {
+  if (!els.showSmoke.checked) {
+    clearSmokeOverlay();
+    return;
+  }
+
+  els.smokeOptions.open = true;
+
+  if (!state.smokeManifest) {
+    setSmokeStatus('Loading latest HRRR Smoke forecast...');
+    try {
+      const response = await fetch('assets/live/hrrr-smoke/manifest.json', { cache: 'no-store' });
+      if (!response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
+      state.smokeManifest = await response.json();
+      const lastHour = Math.max(...(state.smokeManifest.hours || [48]));
+      els.smokeHour.max = String(lastHour);
+      els.smokeHour.disabled = false;
+      els.smokeField.disabled = false;
+      setSmokeStatus(`Loaded ${state.smokeManifest.model || 'HRRR Smoke'} run ${formatDateTime(state.smokeManifest.run)}.`);
+    } catch (error) {
+      els.showSmoke.checked = false;
+      clearSmokeOverlay();
+      setSmokeStatus(error.message || 'Unable to load HRRR Smoke data.', true);
+      return;
+    }
+  }
+  renderSmokeOverlay();
+}
+
+function renderSmokeOverlay() {
+  clearSmokeOverlay();
+  if (!els.showSmoke.checked || !state.smokeManifest) return;
+
+  const fieldName = els.smokeField.value;
+  const field = state.smokeManifest.fields?.[fieldName];
+  if (!field) return;
+  const hour = Number(els.smokeHour.value);
+  const hourToken = String(hour).padStart(3, '0');
+  const imagePath = field.path.replace('{hour}', hourToken);
+  state.smokeOverlay = L.imageOverlay(`assets/live/hrrr-smoke/${imagePath}`, state.smokeManifest.bounds, {
+    opacity: 0.68,
+    pane: 'smokePane',
+    interactive: false
+  }).addTo(state.map);
+  els.smokeLegend.hidden = false;
+  const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
+  els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatDateTime(validTime.toISOString())} | ${field.label} (${field.units})`;
+}
+
+function clearSmokeOverlay() {
+  if (state.smokeOverlay) {
+    state.smokeOverlay.remove();
+    state.smokeOverlay = null;
+  }
+  els.smokeLegend.hidden = true;
 }
 
 async function loadCachedFireData() {
@@ -653,6 +724,11 @@ function setFuelLoading(isLoading) {
 function setFuelStatus(message, isError = false) {
   els.fuelMoistureStatus.textContent = message;
   els.fuelMoistureStatus.classList.toggle('is-error', isError);
+}
+
+function setSmokeStatus(message, isError = false) {
+  els.smokeStatus.textContent = message;
+  els.smokeStatus.classList.toggle('is-error', isError);
 }
 
 function formatCoordinate(value) {

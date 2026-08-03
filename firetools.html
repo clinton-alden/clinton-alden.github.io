@@ -4,19 +4,19 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Fire Weather Tools | Clinton Alden</title>
-        <meta name="description" content="Interactive VIIRS and MODIS fire detections, active incidents, and fuel-moisture data for the Western United States." />
+        <meta name="description" content="Interactive VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts for the Western United States." />
         <meta name="author" content="Clinton Alden" />
         <meta name="canonical" href="https://clintonalden.com/firetools.html" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Clinton Alden" />
         <meta property="og:title" content="Fire Weather Tools | Clinton Alden" />
-        <meta property="og:description" content="Map VIIRS and MODIS fire detections, active incidents, and fuel-moisture data." />
+        <meta property="og:description" content="Map VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts." />
         <meta property="og:url" content="https://clintonalden.com/firetools.html" />
         <meta property="og:image" content="https://clintonalden.com/assets/banner.jpeg" />
         <meta property="og:image:alt" content="Mountain landscape" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Fire Weather Tools | Clinton Alden" />
-        <meta name="twitter:description" content="Map VIIRS and MODIS fire detections, active incidents, and fuel-moisture data." />
+        <meta name="twitter:description" content="Map VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts." />
         <meta name="twitter:image" content="https://clintonalden.com/assets/banner.jpeg" />
         <meta name="twitter:image:alt" content="Mountain landscape" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +37,7 @@
           "url": "https://clintonalden.com/firetools.html",
           "applicationCategory": "WeatherApplication",
           "operatingSystem": "Web",
-          "description": "An interactive map of VIIRS and MODIS fire detections, active incidents, and fuel-moisture data.",
+          "description": "An interactive map of VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts.",
           "offers": {
             "@type": "Offer",
             "price": "0",
@@ -143,6 +143,26 @@
                             </details>
                         </fieldset>
 
+                        <fieldset class="fire-fieldset">
+                            <legend>HRRR Smoke</legend>
+                            <label class="checkbox-label">
+                                <input id="show-smoke" type="checkbox" />
+                                <span>Show forecast smoke</span>
+                            </label>
+                            <details id="smoke-options" class="fire-options">
+                                <summary>Smoke forecast options</summary>
+                                <label for="smoke-field">Product</label>
+                                <select id="smoke-field" disabled>
+                                    <option value="surface">Near-surface smoke</option>
+                                    <option value="column">Vertically integrated smoke</option>
+                                </select>
+                                <label for="smoke-hour">Forecast hour</label>
+                                <input id="smoke-hour" type="range" min="0" max="48" value="0" step="1" disabled />
+                                <output id="smoke-hour-label" for="smoke-hour">Forecast data loading on demand.</output>
+                            </details>
+                            <p id="smoke-status" class="fire-status">Latest completed 48-hour HRRR Smoke run, refreshed every six hours.</p>
+                        </fieldset>
+
                         <div class="fire-control-grid">
                             <div>
                                 <label for="fire-day-range">Days</label>
@@ -192,6 +212,11 @@
                                 <span><i class="fuel-dry"></i>Dry &lt; 7%</span>
                                 <span><i class="fuel-elevated"></i>7-12%</span>
                                 <span><i class="fuel-moist"></i>Moist &gt; 12%</span>
+                            </div>
+                            <div id="smoke-legend" class="fire-legend" hidden aria-label="Smoke forecast color legend">
+                                <span><i class="smoke-light"></i>Light smoke</span>
+                                <span><i class="smoke-moderate"></i>Moderate</span>
+                                <span><i class="smoke-dense"></i>Dense</span>
                             </div>
                         </div>
                         <div id="fire-map" class="fire-map"></div>
