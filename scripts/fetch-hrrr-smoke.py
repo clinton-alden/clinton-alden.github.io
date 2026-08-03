@@ -27,15 +27,19 @@ LATEST_RUN_RETRY_SECONDS = 120
 FIELDS = {
     "surface": {
         "parameter": "MASSDEN",
+        "grib_parameter": (0, 20, 0),
+        "unit_scale": 1_000_000_000,
         "label": "Near-surface smoke",
         "units": "ug m-3",
         "breaks": [1, 5, 15, 35, 75, 150],
     },
     "column": {
         "parameter": "COLMD",
+        "grib_parameter": (0, 20, 1),
+        "unit_scale": 1_000_000,
         "label": "Vertically integrated smoke",
         "units": "mg m-2",
-        "breaks": [0.25, 1, 3, 6, 12, 25],
+        "breaks": [250, 1_000, 3_000, 6_000, 12_000, 25_000],
     },
 }
 COLORS = np.array([
@@ -61,7 +65,7 @@ def main() -> None:
         fields = download_hour(run, hour)
         for name, config in FIELDS.items():
             values, latitudes, longitudes = fields[config["parameter"]]
-            regular = regrid.to_regular(values, latitudes, longitudes)
+            regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
             render_overlay(regular, config["breaks"], OUTPUT / name / f"f{hour:03d}.webp")
 
     manifest = {
@@ -110,6 +114,8 @@ def download_hour(run: datetime, hour: int) -> dict[str, tuple[np.ndarray, np.nd
         "file": filename,
         "var_MASSDEN": "on",
         "var_COLMD": "on",
+        "lev_8_m_above_ground": "on",
+        "lev_entire_atmosphere_(considered_as_a_single_layer)": "on",
         "subregion": "",
         "leftlon": WEST["west"],
         "rightlon": WEST["east"],
@@ -134,8 +140,16 @@ def read_fields(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarra
     with path.open("rb") as handle:
         while message := codes_grib_new_from_file(handle):
             try:
-                parameter = str(codes_get(message, "shortName")).upper()
-                if parameter not in {config["parameter"] for config in FIELDS.values()}:
+                grib_parameter = (
+                    int(codes_get(message, "discipline")),
+                    int(codes_get(message, "parameterCategory")),
+                    int(codes_get(message, "parameterNumber")),
+                )
+                parameter = next(
+                    (config["parameter"] for config in FIELDS.values() if config["grib_parameter"] == grib_parameter),
+                    None,
+                )
+                if parameter is None:
                     continue
                 level_type = str(codes_get(message, "typeOfLevel"))
                 level = int(codes_get(message, "level")) if level_type not in {"surface", "entireAtmosphere"} else 0
