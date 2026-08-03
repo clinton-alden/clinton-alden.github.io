@@ -6,7 +6,8 @@ from __future__ import annotations
 import json
 import shutil
 import sys
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +22,8 @@ NOMADS = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
 WEST = {"west": -127.0, "east": -102.0, "south": 30.0, "north": 51.0}
 RESOLUTION = 0.05
 HOURS = range(49)
+LATEST_RUN_ATTEMPTS = 15
+LATEST_RUN_RETRY_SECONDS = 120
 FIELDS = {
     "surface": {
         "parameter": "MASSDEN",
@@ -52,11 +55,7 @@ def main() -> None:
     for name in FIELDS:
         (OUTPUT / name).mkdir(parents=True)
 
-    try:
-        run = find_latest_completed_run()
-    except Exception as error:
-        write_unavailable_manifest(error)
-        return
+    run = find_latest_completed_run()
     regrid = Regridder()
     for hour in HOURS:
         fields = download_hour(run, hour)
@@ -85,26 +84,21 @@ def main() -> None:
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
 
 
-def write_unavailable_manifest(error: Exception) -> None:
-    manifest = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "available": False,
-        "message": "The latest HRRR Smoke run is not available from NOAA yet. The next scheduled refresh will retry.",
-    }
-    (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
-    print(f"HRRR Smoke unavailable: {error}")
-
-
 def find_latest_completed_run() -> datetime:
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
     candidate = now.replace(hour=(now.hour // 6) * 6)
-    for _ in range(5):
+    last_error: Exception | None = None
+    for attempt in range(1, LATEST_RUN_ATTEMPTS + 1):
         try:
             download_hour(candidate, 48)
             return candidate
-        except Exception:
-            candidate -= timedelta(hours=6)
-    raise RuntimeError("No completed 48-hour HRRR Smoke run was available.")
+        except Exception as error:
+            last_error = error
+            if attempt == LATEST_RUN_ATTEMPTS:
+                break
+            print(f"Latest HRRR Smoke run is not ready (attempt {attempt}/{LATEST_RUN_ATTEMPTS}); retrying in {LATEST_RUN_RETRY_SECONDS} seconds.")
+            time.sleep(LATEST_RUN_RETRY_SECONDS)
+    raise RuntimeError(f"Latest HRRR Smoke run did not become available: {last_error}")
 
 
 def download_hour(run: datetime, hour: int) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]]:
