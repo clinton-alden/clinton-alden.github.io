@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const outputDirectory = new URL('../assets/live/', import.meta.url);
 const firmsKey = 'ba50bf93112cabcd9ed7c7f5e71f631a';
@@ -21,17 +21,33 @@ const unavailableSources = fireResults.flatMap((result, index) => {
   console.warn(`Skipping ${sources[index]}: ${result.reason.message}`);
   return [sources[index]];
 });
-if (fireResponses.length === 0) throw new Error('All FIRMS sources were unavailable.');
-
-const fireRows = fireResponses.flatMap(({ source, csv }) => parseCsv(csv).map(row => ({ ...row, source })));
-await writeJson('firms.json', {
-  generatedAt: new Date().toISOString(),
-  bounds,
-  days: 2,
-  sources: fireResponses.map(response => response.source),
-  unavailableSources,
-  rows: fireRows
-});
+if (fireResponses.length === 0) {
+  const cachedFirms = await readJson('firms.json');
+  if (cachedFirms) console.warn(`All FIRMS sources were unavailable; retaining cached detections from ${cachedFirms.generatedAt || 'an unknown time'}.`);
+  else console.warn('All FIRMS sources were unavailable and no prior retrieval cache was found; publishing an empty dataset for this run.');
+  await writeJson('firms.json', {
+    ...cachedFirms,
+    generatedAt: cachedFirms?.generatedAt || new Date().toISOString(),
+    bounds,
+    days: 2,
+    sources: cachedFirms?.sources || [],
+    lastAttemptAt: new Date().toISOString(),
+    unavailableSources: sources,
+    stale: true,
+    rows: cachedFirms?.rows || []
+  });
+} else {
+  const fireRows = fireResponses.flatMap(({ source, csv }) => parseCsv(csv).map(row => ({ ...row, source })));
+  await writeJson('firms.json', {
+    generatedAt: new Date().toISOString(),
+    bounds,
+    days: 2,
+    sources: fireResponses.map(response => response.source),
+    unavailableSources,
+    stale: false,
+    rows: fireRows
+  });
+}
 
 const date = new Date().toISOString().slice(0, 10);
 const fuelResult = await fems(`query {
@@ -73,6 +89,14 @@ async function fems(query) {
 
 async function writeJson(name, value) {
   await writeFile(new URL(name, outputDirectory), JSON.stringify(value));
+}
+
+async function readJson(name) {
+  try {
+    return JSON.parse(await readFile(new URL(name, outputDirectory), 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function parseCsv(csv) {

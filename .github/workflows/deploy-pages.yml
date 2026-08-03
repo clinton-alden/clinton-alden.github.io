@@ -27,7 +27,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Restore last FIRMS retrievals
+        uses: actions/cache/restore@v4
+        with:
+          path: assets/live/firms.json
+          key: firms-retrievals-${{ github.run_id }}
+          restore-keys: firms-retrievals-
       - run: node scripts/fetch-live-data.mjs
+      - name: Save FIRMS retrievals
+        uses: actions/cache/save@v4
+        with:
+          path: assets/live/firms.json
+          key: firms-retrievals-${{ github.run_id }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

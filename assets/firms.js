@@ -366,8 +366,9 @@ async function loadCachedFireData() {
     state.lastCsv = rowsToCsv(state.allRows);
     renderRows();
     els.downloadFireCsv.disabled = state.lastCsv.length === 0;
-    els.fireUpdated.textContent = `Cached ${new Date(cached.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    setStatus(`Loaded ${state.allRows.length.toLocaleString()} cached FIRMS detections.`);
+    const cachedTime = new Date(cached.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    els.fireUpdated.textContent = cached.stale ? `Cached ${cachedTime} (FIRMS refresh delayed)` : `Cached ${cachedTime}`;
+    setStatus(`Loaded ${state.allRows.length.toLocaleString()} cached FIRMS detections${cached.stale ? '; FIRMS refresh delayed.' : '.'}`);
   } catch {
     loadFireData({ useDefaultBounds: true });
   }
