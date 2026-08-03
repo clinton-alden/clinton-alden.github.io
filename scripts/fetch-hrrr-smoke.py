@@ -52,7 +52,11 @@ def main() -> None:
     for name in FIELDS:
         (OUTPUT / name).mkdir(parents=True)
 
-    run = find_latest_completed_run()
+    try:
+        run = find_latest_completed_run()
+    except Exception as error:
+        write_unavailable_manifest(error)
+        return
     regrid = Regridder()
     for hour in HOURS:
         fields = download_hour(run, hour)
@@ -79,6 +83,16 @@ def main() -> None:
         },
     }
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
+
+
+def write_unavailable_manifest(error: Exception) -> None:
+    manifest = {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "available": False,
+        "message": "The latest HRRR Smoke run is not available from NOAA yet. The next scheduled refresh will retry.",
+    }
+    (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
+    print(f"HRRR Smoke unavailable: {error}")
 
 
 def find_latest_completed_run() -> datetime:

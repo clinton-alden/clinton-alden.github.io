@@ -256,6 +256,7 @@ async function syncSmokeLayer() {
       const response = await fetch('assets/live/hrrr-smoke/manifest.json', { cache: 'no-store' });
       if (!response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
       state.smokeManifest = await response.json();
+      if (state.smokeManifest.available === false) throw new Error(state.smokeManifest.message || 'HRRR Smoke is not available yet.');
       const lastHour = Math.max(...(state.smokeManifest.hours || [48]));
       els.smokeHour.max = String(lastHour);
       els.smokeHour.disabled = false;
