@@ -18,7 +18,7 @@ from scipy.spatial import cKDTree
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "assets" / "live" / "hrrr-smoke"
 NOMADS = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
-WEST = {"west": -127.0, "east": -102.0, "south": 30.0, "north": 51.0}
+WEST = {"west": -125.0, "east": -66.0, "south": 24.0, "north": 50.0}
 RESOLUTION = 0.05
 HOURS = range(49)
 MAX_RUN_AGE_HOURS = 24

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const outputDirectory = new URL('../assets/live/', import.meta.url);
 const firmsKey = 'ba50bf93112cabcd9ed7c7f5e71f631a';
-const bounds = '-125,31,-102,49';
+const bounds = '-125,24,-66,50';
 const sources = ['VIIRS_SNPP_NRT', 'VIIRS_NOAA20_NRT', 'VIIRS_NOAA21_NRT', 'MODIS_NRT'];
 const firmsBase = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 const femsUrl = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
@@ -116,7 +116,7 @@ async function refreshAirNowPm25() {
       if (fields[1] !== 'PM2.5' || fields[4] !== 'Active') continue;
       const latitude = Number(fields[8]);
       const longitude = Number(fields[9]);
-      if (!inWesternUs(latitude, longitude)) continue;
+      if (!inConus(latitude, longitude)) continue;
       sites.set(fields[0], { stationId: fields[0], siteName: fields[3], agency: fields[6], state: fields[18], latitude, longitude });
     }
 
@@ -165,9 +165,9 @@ function pm25NowcastAqi(readings) {
   return Math.round((highAqi - lowAqi) / (highConcentration - lowConcentration) * (concentration - lowConcentration) + lowAqi);
 }
 
-function inWesternUs(latitude, longitude) {
+function inConus(latitude, longitude) {
   return Number.isFinite(latitude) && Number.isFinite(longitude)
-    && latitude >= 30 && latitude <= 51 && longitude >= -127 && longitude <= -102;
+    && latitude >= 24 && latitude <= 50 && longitude >= -125 && longitude <= -66;
 }
 
 async function fems(query) {

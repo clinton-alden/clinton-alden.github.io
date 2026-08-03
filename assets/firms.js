@@ -1,10 +1,10 @@
 const FIRMS_API_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 const FIRMS_MAP_KEY = 'ba50bf93112cabcd9ed7c7f5e71f631a';
 const FEMS_API_URL = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
-const WESTERN_US_VIEW = {
-  center: [41.8, -115.5],
-  zoom: 5,
-  bounds: [[31.5, -125.5], [49.5, -102]]
+const CONUS_VIEW = {
+  center: [38.2, -96.5],
+  zoom: 4,
+  bounds: [[24, -125], [50, -66]]
 };
 
 const state = {
@@ -120,7 +120,7 @@ function initMap() {
     zoomSnap: 0.25,
     zoomDelta: 0.25,
     wheelPxPerZoomLevel: 90
-  }).fitBounds(WESTERN_US_VIEW.bounds);
+  }).fitBounds(CONUS_VIEW.bounds);
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
@@ -274,8 +274,8 @@ function initControls() {
 
   els.loadFireData.addEventListener('click', () => loadFireData());
   els.downloadFireCsv.addEventListener('click', downloadCsv);
-  els.fireResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
-  els.mobileResetView.addEventListener('click', () => state.map.fitBounds(WESTERN_US_VIEW.bounds));
+  els.fireResetView.addEventListener('click', () => state.map.fitBounds(CONUS_VIEW.bounds));
+  els.mobileResetView.addEventListener('click', () => state.map.fitBounds(CONUS_VIEW.bounds));
   els.mobileClearOverlays.addEventListener('click', clearMapOverlays);
   els.mobileIncidentsToggle.addEventListener('click', () => {
     const results = document.getElementById('fire-results');
@@ -664,7 +664,7 @@ async function loadFireData(options = {}) {
   const sources = getSelectedSources();
   const dayRange = els.fireDayRange.value;
   const startDate = els.fireDate.value;
-  const bounds = options.useDefaultBounds ? '-125,31,-102,49' : getApiBounds();
+  const bounds = options.useDefaultBounds ? '-125,24,-66,50' : getApiBounds();
 
   if (sources.length === 0) {
     setStatus('Select at least one fire source.', true);
