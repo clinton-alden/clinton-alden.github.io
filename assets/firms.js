@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cacheElements();
   if (!els.map || typeof L === 'undefined') return;
 
-  const initialFireData = fetchCachedJson('assets/live/firms.json');
+  const initialFireData = window.__FIRE_FIRMS__ ? Promise.resolve(window.__FIRE_FIRMS__) : fetchCachedJson('assets/live/firms.json');
   initMap();
   try {
     initControls();
@@ -217,6 +217,10 @@ function initMap() {
 
 async function loadIncidents() {
   try {
+    if (window.__FIRE_INCIDENTS__) {
+      renderIncidents(window.__FIRE_INCIDENTS__);
+      return;
+    }
     const response = await fetch(liveDataUrl('assets/live/incidents.json'), { cache: 'force-cache' });
     if (!response.ok) throw new Error('Incident data unavailable.');
     renderIncidents(await response.json());
@@ -474,12 +478,12 @@ async function syncSmokeLayer() {
   if (!state.smokeManifest) {
     setSmokeStatus('Loading latest HRRR Smoke forecast...');
     try {
-      const response = await fetch(liveDataUrl('assets/live/hrrr-smoke/manifest.json'), { cache: 'force-cache' });
-      if (!response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
-      state.smokeManifest = await response.json();
+      const response = window.__HRRR_SMOKE_MANIFEST__ ? null : await fetch(liveDataUrl('assets/live/hrrr-smoke/manifest.json'), { cache: 'force-cache' });
+      if (response && !response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
+      state.smokeManifest = window.__HRRR_SMOKE_MANIFEST__ || await response.json();
       if (state.smokeManifest.available === false) throw new Error(state.smokeManifest.message || 'HRRR Smoke is not available yet.');
-      const windsResponse = await fetch(liveDataUrl('assets/live/hrrr-smoke/winds.json'), { cache: 'force-cache' });
-      state.smokeWinds = windsResponse.ok ? await windsResponse.json() : null;
+      const windsResponse = window.__HRRR_SMOKE_WINDS__ ? null : await fetch(liveDataUrl('assets/live/hrrr-smoke/winds.json'), { cache: 'force-cache' });
+      state.smokeWinds = window.__HRRR_SMOKE_WINDS__ || (windsResponse?.ok ? await windsResponse.json() : null);
       const lastHour = Math.max(...(state.smokeManifest.hours || [48]));
       els.smokeHour.max = String(lastHour);
       els.smokeHour.disabled = false;
@@ -566,9 +570,9 @@ async function syncPctSmokeLayer() {
   if (!state.pctSmokeData) {
     setPctSmokeStatus('Loading PCT smoke forecast...');
     try {
-      const response = await fetch(liveDataUrl('assets/live/hrrr-smoke/pct-smoke.json'), { cache: 'force-cache' });
-      if (!response.ok) throw new Error('PCT smoke data is not available for this HRRR run.');
-      const data = await response.json();
+      const response = window.__HRRR_PCT_SMOKE__ ? null : await fetch(liveDataUrl('assets/live/hrrr-smoke/pct-smoke.json'), { cache: 'force-cache' });
+      if (response && !response.ok) throw new Error('PCT smoke data is not available for this HRRR run.');
+      const data = window.__HRRR_PCT_SMOKE__ || await response.json();
       if (data.run !== state.smokeManifest.run) throw new Error('PCT smoke data is waiting for the current HRRR run.');
       state.pctSmokeData = data;
       setPctSmokeStatus(`Loaded ${data.miles?.length?.toLocaleString() || 0} PCT mile samples.`);
@@ -706,7 +710,7 @@ function handleSmokeKeyboard(event) {
 
 async function loadCachedFireData(initialFireData) {
   try {
-    const cached = await (initialFireData || fetchCachedJson('assets/live/firms.json'));
+    const cached = window.__FIRE_FIRMS__ || await (initialFireData || fetchCachedJson('assets/live/firms.json'));
     state.lastSources = cached.sources || [];
     state.allRows = (cached.rows || []).map(row => normalizeRow(row, row.source))
       .filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
@@ -1116,9 +1120,9 @@ function fuelPopupHtml(row, moisture) {
 
 async function loadPm25() {
   try {
-    const response = await fetch(liveDataUrl('assets/live/airnow-pm25.json'), { cache: 'force-cache' });
-    if (!response.ok) throw new Error('AirNow PM2.5 data unavailable.');
-    const data = await response.json();
+    const response = window.__FIRE_AIRNOW__ ? null : await fetch(liveDataUrl('assets/live/airnow-pm25.json'), { cache: 'force-cache' });
+    if (response && !response.ok) throw new Error('AirNow PM2.5 data unavailable.');
+    const data = window.__FIRE_AIRNOW__ || await response.json();
     state.pm25Rows = data.rows || [];
     const updated = data.observedAt ? `Observed ${formatDateTime(data.observedAt)}` : 'Observation time unavailable';
     els.pm25Status.textContent = `${state.pm25Rows.length.toLocaleString()} AirNow PM2.5 monitors. ${updated}${data.stale ? ' (refresh delayed)' : ''}`;

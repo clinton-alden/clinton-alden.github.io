@@ -18,4 +18,6 @@ elif [[ -n "${1:-}" ]]; then
   exit 2
 fi
 
+python3 "$ROOT/scripts/build-preview-data.py"
+
 exec python3 -m http.server "$PORT" --directory "$ROOT"

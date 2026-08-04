@@ -102,15 +102,23 @@ def main() -> None:
             for name, config in FIELDS.items()
         },
     }
-    (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
-    (OUTPUT / "winds.json").write_text(json.dumps({"run": manifest["run"], "frames": wind_frames}, separators=(",", ":")))
-    (OUTPUT / "pct-smoke.json").write_text(json.dumps({
+    winds = {"run": manifest["run"], "frames": wind_frames}
+    pct_smoke = {
         "run": manifest["run"],
         "units": FIELDS["surface"]["units"],
         "breaks": FIELDS["surface"]["breaks"],
         "source": "Pacific Crest Trail Association mileage markers, CC BY 4.0",
         "miles": pct_miles,
-    }, separators=(",", ":")))
+    }
+    write_data("manifest", manifest, "__HRRR_SMOKE_MANIFEST__")
+    write_data("winds", winds, "__HRRR_SMOKE_WINDS__")
+    write_data("pct-smoke", pct_smoke, "__HRRR_PCT_SMOKE__")
+
+
+def write_data(name: str, value: object, global_name: str) -> None:
+    payload = json.dumps(value, separators=(",", ":"))
+    (OUTPUT / f"{name}.json").write_text(payload)
+    (OUTPUT / f"{name}.data.js").write_text(f"window.{global_name}={payload};")
 
 
 def fetch_pct_miles() -> list[dict[str, float | int | list[float]]]:
