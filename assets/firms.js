@@ -47,19 +47,26 @@ document.addEventListener('DOMContentLoaded', () => {
   cacheElements();
   if (!els.map || typeof L === 'undefined') return;
 
+  const initialFireData = fetchCachedJson('assets/live/firms.json');
   initMap();
-  initControls();
+  try {
+    initControls();
+  } catch (error) {
+    console.error('Fire Dashboard controls failed to initialize.', error);
+    setStatus(`Map controls failed: ${error.message}`, true);
+    return;
+  }
   updateBoundsLabel();
   renderActiveLayers();
-  initializeLiveLayers();
+  initializeLiveLayers(initialFireData);
   window.setInterval(() => {
     loadIncidents();
     loadPm25();
   }, 60 * 60 * 1000);
 });
 
-async function initializeLiveLayers() {
-  await loadCachedFireData();
+async function initializeLiveLayers(initialFireData) {
+  await loadCachedFireData(initialFireData);
   window.setTimeout(loadIncidents, 250);
   window.setTimeout(loadPm25, 500);
   if (els.showSmoke.checked) window.setTimeout(syncSmokeLayer, 750);
@@ -697,9 +704,9 @@ function handleSmokeKeyboard(event) {
   }
 }
 
-async function loadCachedFireData() {
+async function loadCachedFireData(initialFireData) {
   try {
-    const cached = await fetchCachedJson('assets/live/firms.json');
+    const cached = await (initialFireData || fetchCachedJson('assets/live/firms.json'));
     state.lastSources = cached.sources || [];
     state.allRows = (cached.rows || []).map(row => normalizeRow(row, row.source))
       .filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
@@ -710,21 +717,20 @@ async function loadCachedFireData() {
     els.fireUpdated.textContent = cached.stale ? `Cached ${cachedTime} (FIRMS refresh delayed)` : `Cached ${cachedTime}`;
     setStatus(`Loaded ${state.allRows.length.toLocaleString()} cached FIRMS detections${cached.stale ? '; FIRMS refresh delayed.' : '.'}`);
   } catch (error) {
-    console.warn('Cached FIRMS data was unavailable after retries; using the live FIRMS request.', error);
-    await loadFireData({ useDefaultBounds: true });
+    console.warn('Cached FIRMS data was unavailable; scheduling another cache retry.', error);
+    setStatus('Waiting for cached satellite detections...');
+    window.setTimeout(loadCachedFireData, 10_000);
   }
 }
 
-async function fetchCachedJson(url, attempts = 3) {
+async function fetchCachedJson(url, attempts = 5) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const response = await fetch(liveDataUrl(url), { cache: 'force-cache' });
-      if (!response.ok) throw new Error(`Cached data returned ${response.status}.`);
-      return await response.json();
+      return await requestCachedJson(liveDataUrl(url));
     } catch (error) {
       lastError = error;
-      if (attempt < attempts) await delay(attempt * 500);
+      if (attempt < attempts) await delay(attempt * 1_000);
     }
   }
   throw lastError || new Error('Cached data unavailable.');
@@ -734,10 +740,27 @@ function delay(milliseconds) {
   return new Promise(resolve => window.setTimeout(resolve, milliseconds));
 }
 
+function requestCachedJson(url) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'json';
+    request.timeout = 8_000;
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300 && request.response) {
+        resolve(request.response);
+      } else {
+        reject(new Error(`Cached data returned ${request.status}.`));
+      }
+    };
+    request.onerror = () => reject(new Error('Cached data request failed.'));
+    request.ontimeout = () => reject(new Error('Cached data request timed out.'));
+    request.send();
+  });
+}
+
 function liveDataUrl(path) {
-  // Share a fresh CDN object for ten minutes instead of relying on a stale edge response.
-  const version = Math.floor(Date.now() / (10 * 60 * 1000));
-  return `${path}?v=${version}`;
+  return path;
 }
 
 async function loadFuelMoisture() {
