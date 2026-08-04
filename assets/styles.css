@@ -651,6 +651,11 @@ a:hover { text-decoration: underline; }
   font-size: 11px;
   line-height: 1.4;
 }
+.fire-smoke-time-control { display: flex; align-items: center; gap: 8px; }
+.fire-smoke-time-control div { min-width: 0; }
+.fire-smoke-time-control strong,
+.fire-smoke-time-control span { display: block; }
+.fire-smoke-time-control button { width: 32px; height: 32px; flex: 0 0 32px; border: 1px solid rgba(255,255,255,.35); border-radius: 3px; color: #fff; background: rgba(255,255,255,.08); font-size: 18px; }
 .fire-smoke-scale-control {
   width: 252px;
   padding: 7px 8px 6px;
@@ -899,8 +904,8 @@ a:hover { text-decoration: underline; }
     background: transparent;
     font: 600 12px var(--font-mono);
   }
-  .fire-smoke-time-control { max-width: calc(100vw - 118px); font-size: 10px; }
-  .fire-smoke-scale-control { width: min(220px, calc(100vw - 92px)); }
+  .fire-smoke-time-control { max-width: calc(100vw - 180px); font-size: 10px; }
+  .fire-smoke-scale-control { width: min(165px, calc(100vw - 220px)); }
   #plot-placeholder.is-visible { min-height: 420px; }
   .sounding-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sounding-diagnostics .diagnostic-wide { grid-column: span 2; }

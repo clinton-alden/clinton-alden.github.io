@@ -21,6 +21,7 @@ const state = {
   smokeFrameRequest: 0,
   smokeTimeElement: null,
   smokeScaleElement: null,
+  smokeTimeZone: 'America/Los_Angeles',
   incidentData: null,
   filteredIncidents: [],
   incidentListRows: [],
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadIncidents();
   loadPm25();
   renderActiveLayers();
+  if (els.showSmoke.checked) syncSmokeLayer();
   window.setInterval(() => {
     loadIncidents();
     loadPm25();
@@ -95,6 +97,8 @@ function cacheElements() {
     'smoke-field',
     'smoke-hour',
     'smoke-hour-label',
+    'smoke-timezone',
+    'smoke-use-device-time',
     'smoke-play',
     'smoke-opacity',
     'smoke-opacity-label',
@@ -346,6 +350,11 @@ function initControls() {
   els.showSmokeWind.addEventListener('change', renderSmokeOverlay);
   els.smokeField.addEventListener('change', renderSmokeOverlay);
   els.smokeHour.addEventListener('input', renderSmokeOverlay);
+  els.smokeTimeZone.addEventListener('change', () => {
+    state.smokeTimeZone = els.smokeTimeZone.value;
+    renderSmokeOverlay();
+  });
+  els.smokeUseDeviceTime.addEventListener('click', useDeviceSmokeTimeZone);
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
   els.smokePlay.addEventListener('click', toggleSmokePlayback);
   document.addEventListener('keydown', handleSmokeKeyboard, true);
@@ -391,6 +400,21 @@ function setMobileIncidentsOpen(open) {
   const results = document.getElementById('fire-results');
   results.classList.toggle('is-mobile-open', open);
   els.mobileIncidentsToggle.setAttribute('aria-expanded', String(open));
+}
+
+function useDeviceSmokeTimeZone() {
+  const setZone = () => {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!zone) return;
+    if (![...els.smokeTimeZone.options].some(option => option.value === zone)) {
+      els.smokeTimeZone.add(new Option(zone.replace('America/', '').replace('_', ' '), zone));
+    }
+    els.smokeTimeZone.value = zone;
+    state.smokeTimeZone = zone;
+    renderSmokeOverlay();
+  };
+  if (navigator.geolocation) navigator.geolocation.getCurrentPosition(setZone, setZone, { timeout: 8000, maximumAge: 86_400_000 });
+  else setZone();
 }
 
 async function syncSmokeLayer() {
@@ -459,7 +483,10 @@ function renderSmokeOverlay() {
   const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
   els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatSmokeTimes(validTime)} | ${field.label} (${field.units})`;
   if (state.smokeTimeElement) {
-    state.smokeTimeElement.textContent = `HRRR Smoke F${hourToken} | ${formatSmokeTimes(validTime)}`;
+    state.smokeTimeElement.innerHTML = `<button type="button" data-smoke-step="-1" aria-label="Previous smoke frame">&larr;</button><div><strong>HRRR Smoke F${hourToken}</strong><span>${escapeHtml(formatSmokeTimes(validTime))}</span></div><button type="button" data-smoke-step="1" aria-label="Next smoke frame">&rarr;</button>`;
+    state.smokeTimeElement.querySelectorAll('[data-smoke-step]').forEach(button => {
+      button.addEventListener('click', () => advanceSmokeFrame(Number(button.dataset.smokeStep)));
+    });
     state.smokeTimeElement.hidden = false;
   }
   renderSmokeWinds(hour);
@@ -1104,19 +1131,9 @@ function formatDateTime(value) {
 function formatSmokeTimes(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'unknown time';
-  const options = {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short'
-  };
-  return [
-    ['UTC', 'UTC'],
-    ['Mountain', 'America/Denver'],
-    ['Pacific', 'America/Los_Angeles']
-  ].map(([label, timeZone]) => `${label} ${new Intl.DateTimeFormat('en-US', { ...options, timeZone }).format(date)}`).join(' | ');
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short', timeZone: state.smokeTimeZone
+  }).format(date);
 }
 
 function clamp(value, min, max) {

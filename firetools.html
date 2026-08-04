@@ -163,7 +163,7 @@
                         <fieldset class="fire-fieldset">
                             <legend>HRRR Smoke</legend>
                             <label class="checkbox-label">
-                                <input id="show-smoke" type="checkbox" />
+                                <input id="show-smoke" type="checkbox" checked />
                                 <span>Show forecast smoke</span>
                             </label>
                             <label class="checkbox-label">
@@ -183,6 +183,15 @@
                                     <input id="smoke-hour" type="range" min="0" max="48" value="0" step="1" disabled />
                                 </div>
                                 <output id="smoke-hour-label" for="smoke-hour">Forecast data loading on demand.</output>
+                                <label for="smoke-timezone">Time zone</label>
+                                <select id="smoke-timezone">
+                                    <option value="America/Los_Angeles" selected>Pacific time</option>
+                                    <option value="America/Denver">Mountain time</option>
+                                    <option value="America/Chicago">Central time</option>
+                                    <option value="America/New_York">Eastern time</option>
+                                    <option value="UTC">UTC</option>
+                                </select>
+                                <button id="smoke-use-device-time" class="btn" type="button">Use device time zone</button>
                                 <label for="smoke-opacity">Opacity <output id="smoke-opacity-label" for="smoke-opacity">68%</output></label>
                                 <input id="smoke-opacity" type="range" min="20" max="100" value="68" step="1" disabled />
                             </details>
