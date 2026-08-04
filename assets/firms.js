@@ -1,10 +1,10 @@
 const FIRMS_API_BASE = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 const FIRMS_MAP_KEY = 'ba50bf93112cabcd9ed7c7f5e71f631a';
 const FEMS_API_URL = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
-const CONUS_VIEW = {
-  center: [38.2, -96.5],
+const WEST_VIEW = {
+  center: [40.5, -113.5],
   zoom: 4,
-  bounds: [[24, -125], [50, -66]]
+  bounds: [[31, -125], [50, -102]]
 };
 
 const state = {
@@ -13,6 +13,9 @@ const state = {
   fuelLayer: null,
   pm25Layer: null,
   incidentLayer: null,
+  pctSmokeLayer: null,
+  pctSmokeData: null,
+  pctRenderRequest: 0,
   smokeOverlay: null,
   smokeWindLayer: null,
   smokeManifest: null,
@@ -108,7 +111,10 @@ function cacheElements() {
     'smoke-status',
     'smoke-quick-controls',
     'smoke-previous-frame',
-    'smoke-next-frame'
+    'smoke-next-frame',
+    'show-pct-smoke',
+    'pct-smoke-mode',
+    'pct-smoke-status'
   ].forEach(id => {
     els[toCamel(id)] = document.getElementById(id);
   });
@@ -131,7 +137,7 @@ function initMap() {
     zoomDelta: 0.5,
     wheelPxPerZoomLevel: 60,
     zoomAnimationThreshold: 12
-  }).fitBounds(CONUS_VIEW.bounds);
+  }).fitBounds(WEST_VIEW.bounds);
 
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
@@ -149,6 +155,8 @@ function initMap() {
   state.map.getPane('boundariesPane').style.zIndex = 365;
   state.map.createPane('firePane');
   state.map.getPane('firePane').style.zIndex = 410;
+  state.map.createPane('pctPane');
+  state.map.getPane('pctPane').style.zIndex = 415;
   state.map.createPane('pm25Pane');
   state.map.getPane('pm25Pane').style.zIndex = 420;
   state.map.createPane('windPane');
@@ -174,6 +182,7 @@ function initMap() {
   state.fuelLayer = L.layerGroup().addTo(state.map);
   state.pm25Layer = L.layerGroup().addTo(state.map);
   state.smokeWindLayer = L.layerGroup().addTo(state.map);
+  state.pctSmokeLayer = L.layerGroup().addTo(state.map);
   state.incidentLayer = L.layerGroup().addTo(state.map);
   const smokeTimeControl = L.control({ position: 'bottomleft' });
   smokeTimeControl.onAdd = () => {
@@ -316,8 +325,8 @@ function initControls() {
 
   els.loadFireData.addEventListener('click', () => loadFireData());
   els.downloadFireCsv.addEventListener('click', downloadCsv);
-  els.fireResetView.addEventListener('click', () => state.map.fitBounds(CONUS_VIEW.bounds));
-  els.mobileResetView.addEventListener('click', () => state.map.fitBounds(CONUS_VIEW.bounds));
+  els.fireResetView.addEventListener('click', () => state.map.fitBounds(WEST_VIEW.bounds));
+  els.mobileResetView.addEventListener('click', () => state.map.fitBounds(WEST_VIEW.bounds));
   els.mobileClearOverlays.addEventListener('click', clearMapOverlays);
   els.mobileIncidentsToggle.addEventListener('click', () => {
     const results = document.getElementById('fire-results');
@@ -368,6 +377,8 @@ function initControls() {
   els.pm25Mode.addEventListener('change', renderPm25Markers);
   els.showSmoke.addEventListener('change', syncSmokeLayer);
   els.showSmokeWind.addEventListener('change', renderSmokeOverlay);
+  els.showPctSmoke.addEventListener('change', syncPctSmokeLayer);
+  els.pctSmokeMode.addEventListener('change', renderPctSmoke);
   els.smokeField.addEventListener('change', renderSmokeOverlay);
   els.smokeHour.addEventListener('input', renderSmokeOverlay);
   els.smokeTimeZone.addEventListener('change', () => {
@@ -513,6 +524,7 @@ function renderSmokeOverlay() {
     state.smokeTimeElement.hidden = false;
   }
   renderSmokeWinds(hour);
+  renderPctSmoke();
 }
 
 function clearSmokeOverlay() {
@@ -527,6 +539,76 @@ function clearSmokeOverlay() {
   els.smokeQuickControls.hidden = true;
   els.showSmokeWind.disabled = true;
   renderMarkers();
+}
+
+async function syncPctSmokeLayer() {
+  if (!els.showPctSmoke.checked) {
+    state.pctSmokeLayer.clearLayers();
+    setPctSmokeStatus('');
+    return;
+  }
+  if (!state.smokeManifest) {
+    setPctSmokeStatus('Load HRRR Smoke before viewing PCT smoke.', true);
+    els.showPctSmoke.checked = false;
+    return;
+  }
+  if (!state.pctSmokeData) {
+    setPctSmokeStatus('Loading PCT smoke forecast...');
+    try {
+      const response = await fetch(liveDataUrl('assets/live/hrrr-smoke/pct-smoke.json'), { cache: 'no-store' });
+      if (!response.ok) throw new Error('PCT smoke data is not available for this HRRR run.');
+      const data = await response.json();
+      if (data.run !== state.smokeManifest.run) throw new Error('PCT smoke data is waiting for the current HRRR run.');
+      state.pctSmokeData = data;
+      setPctSmokeStatus(`Loaded ${data.miles?.length?.toLocaleString() || 0} PCT mile samples.`);
+    } catch (error) {
+      els.showPctSmoke.checked = false;
+      setPctSmokeStatus(error.message || 'Unable to load PCT smoke data.', true);
+      return;
+    }
+  }
+  renderPctSmoke();
+}
+
+function renderPctSmoke() {
+  state.pctSmokeLayer.clearLayers();
+  const renderRequest = ++state.pctRenderRequest;
+  if (!els.showPctSmoke?.checked || !state.pctSmokeData) return;
+  const hour = Number(els.smokeHour.value);
+  const maximum = els.pctSmokeMode.value === 'max';
+  const samples = state.pctSmokeData.miles || [];
+  let index = 0;
+  const addBatch = () => {
+    if (renderRequest !== state.pctRenderRequest) return;
+    const end = Math.min(index + 125, samples.length - 1);
+    for (; index < end; index += 1) {
+      const start = samples[index];
+      const endPoint = samples[index + 1];
+      if (endPoint.mile !== start.mile + 1) continue;
+      const values = start.values || [];
+      const value = maximum ? Math.max(...values.filter(Number.isFinite)) : Number(values[hour]);
+      if (!Number.isFinite(value)) continue;
+      const line = L.polyline([[start.lat, start.lon], [endPoint.lat, endPoint.lon]], {
+        pane: 'pctPane', color: pctSmokeColor(value), weight: 5, opacity: 0.92
+      });
+      line.bindPopup(`<div class="fire-popup"><strong>PCT mile ${start.mile.toLocaleString()}</strong><span>${maximum ? '48-hour maximum' : `HRRR F${String(hour).padStart(3, '0')}`}: ${formatNumber(value)} ${escapeHtml(state.pctSmokeData.units || 'ug m-3')}</span></div>`);
+      line.addTo(state.pctSmokeLayer);
+    }
+    if (index < samples.length - 1) window.requestAnimationFrame(addBatch);
+  };
+  window.requestAnimationFrame(addBatch);
+}
+
+function pctSmokeColor(value) {
+  const breaks = state.pctSmokeData?.breaks || [1, 5, 15, 35, 75, 150];
+  const colors = ['#fef08a', '#fdba74', '#fb923c', '#ef4444', '#be185d', '#6b21a8'];
+  const nextBreak = breaks.findIndex(limit => value < limit);
+  return nextBreak === -1 ? colors.at(-1) : colors[Math.max(0, nextBreak - 1)];
+}
+
+function setPctSmokeStatus(message, isError = false) {
+  els.pctSmokeStatus.textContent = message;
+  els.pctSmokeStatus.classList.toggle('is-error', isError);
 }
 
 function renderSmokeWinds(hour) {
@@ -757,7 +839,7 @@ async function loadFireData(options = {}) {
   const sources = getSelectedSources();
   const dayRange = els.fireDayRange.value;
   const startDate = els.fireDate.value;
-  const bounds = options.useDefaultBounds ? '-125,24,-66,50' : getApiBounds();
+  const bounds = options.useDefaultBounds ? '-125,31,-102,50' : getApiBounds();
 
   if (sources.length === 0) {
     setStatus('Select at least one fire source.', true);

@@ -470,11 +470,12 @@ a:hover { text-decoration: underline; }
 .fire-controls { display: flex; flex-direction: column; }
 .fire-controls-heading { order: 0; }
 .fire-smoke-section { order: 1; }
-.fire-air-section { order: 2; }
-.fire-incidents-section { order: 3; }
-.fire-satellite-section { order: 4; }
-.fire-fuel-section { order: 5; }
-.fire-advanced-options { order: 6; }
+.fire-pct-section { order: 2; }
+.fire-air-section { order: 3; }
+.fire-incidents-section { order: 4; }
+.fire-satellite-section { order: 5; }
+.fire-fuel-section { order: 6; }
+.fire-advanced-options { order: 7; }
 .fire-controls .btn {
   width: 100%;
   margin-top: 10px;

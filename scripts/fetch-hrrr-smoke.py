@@ -18,11 +18,12 @@ from scipy.spatial import cKDTree
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "assets" / "live" / "hrrr-smoke"
 NOMADS = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
-WEST = {"west": -125.0, "east": -66.0, "south": 24.0, "north": 50.0}
+WEST = {"west": -125.0, "east": -102.0, "south": 31.0, "north": 50.0}
 RESOLUTION = 0.05
 HOURS = range(49)
 MAX_RUN_AGE_HOURS = 24
 WIND_STRIDE = 30
+PCT_MARKERS_URL = "https://services5.arcgis.com/ZldHa25efPFpMmfB/arcgis/rest/services/PCT_Mile_Markers_2026/FeatureServer/0/query"
 FIELDS = {
     "surface": {
         "parameter": "MASSDEN",
@@ -65,12 +66,19 @@ def main() -> None:
     run = find_latest_completed_run()
     regrid = Regridder()
     wind_frames = []
+    try:
+        pct_miles = fetch_pct_miles()
+    except Exception as error:
+        print(f"PCT mileage markers were unavailable: {error}", file=sys.stderr)
+        pct_miles = []
     for hour in HOURS:
         fields = download_hour(run, hour)
         for name, config in FIELDS.items():
             values, latitudes, longitudes = fields[config["parameter"]]
             regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
             render_overlay(regular, config["breaks"], OUTPUT / name / f"f{hour:03d}.webp")
+            if name == "surface":
+                sample_pct_smoke(pct_miles, regular, regrid)
         u_values, latitudes, longitudes = fields["UGRD"]
         v_values, _, _ = fields["VGRD"]
         u_regular = regrid.to_regular(u_values, latitudes, longitudes)
@@ -96,6 +104,55 @@ def main() -> None:
     }
     (OUTPUT / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
     (OUTPUT / "winds.json").write_text(json.dumps({"run": manifest["run"], "frames": wind_frames}, separators=(",", ":")))
+    (OUTPUT / "pct-smoke.json").write_text(json.dumps({
+        "run": manifest["run"],
+        "units": FIELDS["surface"]["units"],
+        "breaks": FIELDS["surface"]["breaks"],
+        "source": "Pacific Crest Trail Association mileage markers, CC BY 4.0",
+        "miles": pct_miles,
+    }, separators=(",", ":")))
+
+
+def fetch_pct_miles() -> list[dict[str, float | int | list[float]]]:
+    markers = []
+    offset = 0
+    while True:
+        response = requests.get(PCT_MARKERS_URL, params={
+            "where": "1=1",
+            "outFields": "Mile,lat,lon",
+            "returnGeometry": "true",
+            "f": "geojson",
+            "resultOffset": offset,
+            "resultRecordCount": 2_000,
+            "orderByFields": "Mile ASC",
+        }, timeout=60)
+        response.raise_for_status()
+        features = response.json().get("features", [])
+        if not features:
+            break
+        for feature in features:
+            properties = feature.get("properties", {})
+            mile = float(properties.get("Mile", -1))
+            coordinates = feature.get("geometry", {}).get("coordinates", [])
+            if not coordinates or abs(mile - round(mile)) > 0.01:
+                continue
+            longitude, latitude = coordinates
+            markers.append({"mile": int(round(mile)), "lat": round(latitude, 5), "lon": round(longitude, 5), "values": []})
+        if len(features) < 2_000:
+            break
+        offset += len(features)
+    unique = {marker["mile"]: marker for marker in markers}
+    return [unique[mile] for mile in sorted(unique)]
+
+
+def sample_pct_smoke(miles: list[dict[str, float | int | list[float]]], values: np.ndarray, regrid: "Regridder") -> None:
+    for marker in miles:
+        latitude = float(marker["lat"])
+        longitude = float(marker["lon"])
+        lat_index = int(np.clip(round((latitude - WEST["south"]) / RESOLUTION), 0, len(regrid.target_lats) - 1))
+        lon_index = int(np.clip(round((longitude - WEST["west"]) / RESOLUTION), 0, len(regrid.target_lons) - 1))
+        concentration = float(values[lat_index, lon_index])
+        marker["values"].append(round(concentration, 1) if np.isfinite(concentration) else None)
 
 
 def find_latest_completed_run() -> datetime:

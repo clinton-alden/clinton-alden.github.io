@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Fire Weather Tools | Clinton Alden</title>
-        <meta name="description" content="Interactive VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts across the contiguous United States." />
+        <meta name="description" content="Interactive VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts across the western United States." />
         <meta name="author" content="Clinton Alden" />
         <meta name="canonical" href="https://clintonalden.com/firetools.html" />
         <meta property="og:type" content="website" />
@@ -196,6 +196,23 @@
                             <p id="smoke-status" class="fire-status fire-layer-status" aria-live="polite"></p>
                         </fieldset>
 
+                        <fieldset class="fire-fieldset fire-pct-section">
+                            <legend>PCT Smoke</legend>
+                            <label class="checkbox-label">
+                                <input id="show-pct-smoke" type="checkbox" />
+                                <span>Show Pacific Crest Trail smoke</span>
+                            </label>
+                            <details class="fire-options">
+                                <summary>PCT smoke options</summary>
+                                <label for="pct-smoke-mode">Display</label>
+                                <select id="pct-smoke-mode">
+                                    <option value="hour">Selected forecast hour</option>
+                                    <option value="max">48-hour maximum</option>
+                                </select>
+                            </details>
+                            <p id="pct-smoke-status" class="fire-status fire-layer-status" aria-live="polite"></p>
+                        </fieldset>
+
                         <details class="fire-options fire-advanced-options">
                             <summary>Advanced satellite options</summary>
                         <div class="fire-control-grid">
@@ -219,7 +236,7 @@
                         <input id="fire-min-frp" type="range" min="0" max="500" step="5" value="5" />
                         <div class="fire-range-meta">
                             <span id="fire-min-frp-label">5 MW</span>
-                            <button id="fire-reset-view" type="button" class="link-button">CONUS</button>
+                            <button id="fire-reset-view" type="button" class="link-button">West</button>
                         </div>
 
                         <button id="load-fire-data" class="btn primary" type="button">Load map view</button>
@@ -294,6 +311,7 @@
                         <p><strong>Satellite detections:</strong> NASA FIRMS VIIRS and MODIS retrievals, refreshed hourly.</p>
                         <p><strong>Incidents and perimeters:</strong> NIFC/IRWIN incident data, refreshed hourly.</p>
                         <p><strong>Smoke and wind:</strong> NOAA HRRR Smoke forecast, refreshed every six hours.</p>
+                        <p><strong>PCT smoke:</strong> HRRR near-surface smoke sampled at Pacific Crest Trail Association mile markers (CC BY 4.0).</p>
                         <p><strong>Fuel moisture:</strong> NFDRS/RAWS observations, refreshed with the six-hour data cycle.</p>
                         <p><strong>Air quality:</strong> AirNow official PM2.5 monitoring sites, refreshed hourly.</p>
                     </div>
