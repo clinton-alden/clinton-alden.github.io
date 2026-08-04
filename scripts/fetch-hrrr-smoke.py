@@ -121,22 +121,26 @@ def fetch_pct_miles() -> list[dict[str, float | int | list[float]]]:
             "where": "1=1",
             "outFields": "Mile,lat,lon",
             "returnGeometry": "true",
-            "f": "geojson",
+            "f": "json",
             "resultOffset": offset,
             "resultRecordCount": 2_000,
             "orderByFields": "Mile ASC",
         }, timeout=60)
         response.raise_for_status()
-        features = response.json().get("features", [])
+        payload = response.json()
+        if payload.get("error"):
+            raise RuntimeError(payload["error"].get("message", "PCTA mile-marker query failed."))
+        features = payload.get("features", [])
         if not features:
             break
         for feature in features:
             properties = feature.get("properties", {})
             mile = float(properties.get("Mile", -1))
-            coordinates = feature.get("geometry", {}).get("coordinates", [])
-            if not coordinates or abs(mile - round(mile)) > 0.01:
+            geometry = feature.get("geometry", {})
+            longitude = geometry.get("x")
+            latitude = geometry.get("y")
+            if longitude is None or latitude is None or abs(mile - round(mile)) > 0.01:
                 continue
-            longitude, latitude = coordinates
             markers.append({"mile": int(round(mile)), "lat": round(latitude, 5), "lon": round(longitude, 5), "values": []})
         if len(features) < 2_000:
             break
