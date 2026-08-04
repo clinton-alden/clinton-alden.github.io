@@ -103,7 +103,10 @@ function cacheElements() {
     'smoke-opacity',
     'smoke-opacity-label',
     'smoke-options',
-    'smoke-status'
+    'smoke-status',
+    'smoke-quick-controls',
+    'smoke-previous-frame',
+    'smoke-next-frame'
   ].forEach(id => {
     els[toCamel(id)] = document.getElementById(id);
   });
@@ -357,6 +360,8 @@ function initControls() {
   els.smokeUseDeviceTime.addEventListener('click', useDeviceSmokeTimeZone);
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
   els.smokePlay.addEventListener('click', toggleSmokePlayback);
+  els.smokePreviousFrame.addEventListener('click', () => advanceSmokeFrame(-1));
+  els.smokeNextFrame.addEventListener('click', () => advanceSmokeFrame(1));
   document.addEventListener('keydown', handleSmokeKeyboard, true);
 }
 
@@ -452,6 +457,7 @@ async function syncSmokeLayer() {
     }
   }
   els.showSmokeWind.disabled = !state.smokeWinds;
+  els.smokeQuickControls.hidden = false;
   renderSmokeOverlay();
 }
 
@@ -501,6 +507,7 @@ function clearSmokeOverlay() {
   if (state.smokeTimeElement) state.smokeTimeElement.hidden = true;
   if (state.smokeScaleElement) state.smokeScaleElement.hidden = true;
   state.smokeWindLayer.clearLayers();
+  els.smokeQuickControls.hidden = true;
   els.showSmokeWind.disabled = true;
   renderMarkers();
 }
@@ -589,9 +596,7 @@ function handleSmokeKeyboard(event) {
 
 async function loadCachedFireData() {
   try {
-    const response = await fetch('assets/live/firms.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Cached fire data unavailable.');
-    const cached = await response.json();
+    const cached = await fetchCachedJson('assets/live/firms.json');
     state.lastSources = cached.sources || [];
     state.allRows = (cached.rows || []).map(row => normalizeRow(row, row.source))
       .filter(row => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
@@ -601,9 +606,29 @@ async function loadCachedFireData() {
     const cachedTime = new Date(cached.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     els.fireUpdated.textContent = cached.stale ? `Cached ${cachedTime} (FIRMS refresh delayed)` : `Cached ${cachedTime}`;
     setStatus(`Loaded ${state.allRows.length.toLocaleString()} cached FIRMS detections${cached.stale ? '; FIRMS refresh delayed.' : '.'}`);
-  } catch {
+  } catch (error) {
+    console.warn('Cached FIRMS data was unavailable after retries; using the live FIRMS request.', error);
     loadFireData({ useDefaultBounds: true });
   }
+}
+
+async function fetchCachedJson(url, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Cached data returned ${response.status}.`);
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await delay(attempt * 500);
+    }
+  }
+  throw lastError || new Error('Cached data unavailable.');
+}
+
+function delay(milliseconds) {
+  return new Promise(resolve => window.setTimeout(resolve, milliseconds));
 }
 
 async function loadFuelMoisture() {

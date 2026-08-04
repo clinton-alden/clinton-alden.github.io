@@ -66,15 +66,7 @@
         </header>
 
         <main>
-            <section class="section fire-hero">
-                <div class="container">
-                    <p class="kicker reveal">Satellite Fire Retrievals and Incident Information</p>
-                    <h1 class="reveal">Fire Tools</h1>
-                    <p class="subtitle reveal">This page aggregates many of the fire datasets useful for monitoring incidents.</p>
-                </div>
-            </section>
-
-            <section class="section fire-workbench" aria-labelledby="fire-controls-title">
+            <section class="section fire-workbench" aria-labelledby="fire-dashboard-title">
                 <div class="fire-shell">
                     <aside class="fire-controls card reveal">
                         <div class="fire-controls-heading">
@@ -82,7 +74,7 @@
                             <button id="mobile-layers-close" class="mobile-close-button" type="button" aria-label="Close data layers">&times;</button>
                         </div>
 
-                        <fieldset class="fire-fieldset">
+                        <fieldset class="fire-fieldset fire-satellite-section">
                             <legend>Satellite Retrievals</legend>
                             <label class="checkbox-label"><input id="show-fire-data" type="checkbox" checked /><span>Show satellite detections</span></label>
                             <details class="fire-options"><summary>Satellite retrieval options</summary>
@@ -113,9 +105,11 @@
                             </details>
                         </fieldset>
 
-                        <fieldset class="fire-fieldset">
+                        <fieldset class="fire-fieldset fire-incidents-section">
                             <legend>Incidents</legend>
                             <label class="checkbox-label"><input id="show-incidents" type="checkbox" checked /><span>Show current incidents</span></label>
+                            <details class="fire-options">
+                                <summary>Incident options</summary>
                             <label for="incident-filter">Display</label>
                             <select id="incident-filter">
                                 <option value="all">All fires</option>
@@ -123,9 +117,10 @@
                             </select>
                             <label for="incident-state">State</label>
                             <select id="incident-state"><option value="">All states</option></select>
+                            </details>
                         </fieldset>
 
-                        <fieldset class="fire-fieldset">
+                        <fieldset class="fire-fieldset fire-fuel-section">
                             <legend>Fuel Moisture</legend>
                             <label class="checkbox-label">
                                 <input id="show-fuel-moisture" type="checkbox" />
@@ -146,32 +141,35 @@
                             </details>
                         </fieldset>
 
-                        <fieldset class="fire-fieldset">
+                        <fieldset class="fire-fieldset fire-air-section">
                             <legend>Air Quality</legend>
                             <label class="checkbox-label">
                                 <input id="show-pm25" type="checkbox" />
                                 <span>Show AirNow PM2.5 monitors</span>
                             </label>
+                            <details class="fire-options">
+                                <summary>Air quality options</summary>
                             <label for="pm25-mode">Display</label>
                             <select id="pm25-mode">
                                 <option value="concentration">PM2.5 (ug/m3)</option>
                                 <option value="aqi">PM2.5 NowCast AQI</option>
                             </select>
-                            <p id="pm25-status" class="fire-status">Latest hourly PM2.5 observations from official AirNow monitoring sites.</p>
+                            </details>
+                            <p id="pm25-status" class="fire-status">Loading AirNow observations...</p>
                         </fieldset>
 
-                        <fieldset class="fire-fieldset">
+                        <fieldset class="fire-fieldset fire-smoke-section">
                             <legend>HRRR Smoke</legend>
                             <label class="checkbox-label">
                                 <input id="show-smoke" type="checkbox" checked />
                                 <span>Show forecast smoke</span>
                             </label>
-                            <label class="checkbox-label">
-                                <input id="show-smoke-wind" type="checkbox" checked disabled />
-                                <span>Show 10 m surface wind</span>
-                            </label>
                             <details id="smoke-options" class="fire-options">
                                 <summary>Smoke forecast options</summary>
+                                <label class="checkbox-label">
+                                    <input id="show-smoke-wind" type="checkbox" checked disabled />
+                                    <span>Show 10 m surface wind</span>
+                                </label>
                                 <label for="smoke-field">Product</label>
                                 <select id="smoke-field" disabled>
                                     <option value="surface">Near-surface smoke</option>
@@ -195,7 +193,7 @@
                                 <label for="smoke-opacity">Opacity <output id="smoke-opacity-label" for="smoke-opacity">68%</output></label>
                                 <input id="smoke-opacity" type="range" min="20" max="100" value="68" step="1" disabled />
                             </details>
-                            <p id="smoke-status" class="fire-status">Latest completed 48-hour HRRR Smoke run, refreshed every six hours.</p>
+                            <p id="smoke-status" class="fire-status fire-layer-status" aria-live="polite"></p>
                         </fieldset>
 
                         <details class="fire-options fire-advanced-options">
@@ -238,8 +236,9 @@
                     <section class="fire-map-panel reveal" aria-label="Interactive active fire map">
                         <div class="fire-toolbar">
                             <div>
+                                <h1 id="fire-dashboard-title" class="fire-dashboard-title">Fire Dashboard</h1>
                                 <span id="fire-count">0 detections</span>
-                                <span id="fire-updated">No query yet</span>
+                                <span id="fire-updated">Loading current detections...</span>
                             </div>
                             <div class="fire-legend" aria-label="Fire detection color legend">
                                 <span><i class="fire-recent"></i>Last 6 h</span>
@@ -261,6 +260,10 @@
                         </div>
                         <div class="fire-map-wrap">
                             <div id="fire-active-layers" class="fire-active-layers" aria-label="Active map layers"></div>
+                            <div id="smoke-quick-controls" class="smoke-quick-controls" hidden aria-label="Smoke forecast frame controls">
+                                <button id="smoke-previous-frame" type="button" aria-label="Previous smoke forecast hour">&larr;</button>
+                                <button id="smoke-next-frame" type="button" aria-label="Next smoke forecast hour">&rarr;</button>
+                            </div>
                             <div class="fire-mobile-map-tools" aria-label="Mobile map controls">
                                 <button id="mobile-layers-toggle" type="button" aria-expanded="false">Layers</button>
                                 <button id="mobile-reset-view" type="button">Reset</button>
@@ -281,6 +284,20 @@
                             <button id="incident-list-toggle" class="mobile-incident-toggle" type="button" hidden>Show all incidents</button>
                         </div>
                     </section>
+                </div>
+            </section>
+
+            <section class="section fire-data-notes" aria-labelledby="fire-data-notes-title">
+                <div class="container">
+                    <h2 id="fire-data-notes-title">Data Sources and Use</h2>
+                    <div class="fire-data-note-grid">
+                        <p><strong>Satellite detections:</strong> NASA FIRMS VIIRS and MODIS retrievals, refreshed hourly.</p>
+                        <p><strong>Incidents and perimeters:</strong> NIFC/IRWIN incident data, refreshed hourly.</p>
+                        <p><strong>Smoke and wind:</strong> NOAA HRRR Smoke forecast, refreshed every six hours.</p>
+                        <p><strong>Fuel moisture:</strong> NFDRS/RAWS observations, refreshed with the six-hour data cycle.</p>
+                        <p><strong>Air quality:</strong> AirNow official PM2.5 monitoring sites, refreshed hourly.</p>
+                    </div>
+                    <p class="fire-disclaimer"><strong>Important:</strong> This dashboard contains preliminary, automated data and forecast guidance. It is provided for informational and educational use only, is not operational decision support, and must not be used as the sole basis for public-safety or fire-management decisions.</p>
                 </div>
             </section>
         </main>

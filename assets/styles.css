@@ -423,7 +423,21 @@ a:hover { text-decoration: underline; }
   overflow-wrap: break-word;
 }
 .fire-workbench {
-  padding-top: 24px;
+  padding-top: 12px;
+}
+.fire-data-notes { padding-top: 28px; padding-bottom: 32px; }
+.fire-data-notes h2 { margin: 0 0 12px; font-size: 18px; }
+.fire-data-note-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 22px; }
+.fire-data-note-grid p,
+.fire-disclaimer { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.fire-disclaimer { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(123, 163, 208, 0.22); color: var(--text); }
+.fire-dashboard-title {
+  display: inline;
+  margin: 0 10px 0 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
 }
 .fire-shell {
   display: grid;
@@ -453,6 +467,14 @@ a:hover { text-decoration: underline; }
 .fire-control-grid > div {
   min-width: 0;
 }
+.fire-controls { display: flex; flex-direction: column; }
+.fire-controls-heading { order: 0; }
+.fire-smoke-section { order: 1; }
+.fire-air-section { order: 2; }
+.fire-incidents-section { order: 3; }
+.fire-satellite-section { order: 4; }
+.fire-fuel-section { order: 5; }
+.fire-advanced-options { order: 6; }
 .fire-controls .btn {
   width: 100%;
   margin-top: 10px;
@@ -550,6 +572,7 @@ a:hover { text-decoration: underline; }
 .fire-status.is-error {
   color: #fecaca;
 }
+.fire-layer-status { display: none; }
 .fire-source-note {
   align-items: flex-start;
   padding-top: 14px;
@@ -566,6 +589,8 @@ a:hover { text-decoration: underline; }
 .fire-map-wrap { position: relative; }
 .fire-active-layers { position: absolute; z-index: 1100; top: 10px; left: 52px; display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 190px); pointer-events: none; }
 .fire-active-layers span { padding: 5px 7px; border: 1px solid rgba(255,255,255,.28); border-radius: 3px; color: #f8fafc; background: rgba(8,18,34,.88); font: 600 10px var(--font-mono); }
+.smoke-quick-controls { position: absolute; right: 10px; bottom: 92px; z-index: 1100; display: flex; gap: 6px; }
+.smoke-quick-controls button { width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; color: #fff; background: rgba(8,18,34,.9); font-size: 24px; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .fire-toolbar {
   min-height: 44px;
   margin-bottom: 10px;
@@ -797,8 +822,8 @@ a:hover { text-decoration: underline; }
     padding-right: 0;
     padding-left: 0;
   }
-  .fire-hero h1 { font-size: 34px; }
-  .fire-hero .subtitle { max-width: 32ch; overflow-wrap: anywhere; word-break: normal; }
+  .fire-dashboard-title { display: block; margin: 0 0 5px; font-size: 14px; }
+  .fire-data-note-grid { grid-template-columns: 1fr; }
   .fire-map-panel { order: 1; }
   .fire-controls {
     position: fixed;
@@ -877,6 +902,7 @@ a:hover { text-decoration: underline; }
     font: 600 12px var(--font-mono);
   }
   .fire-active-layers { top: 10px; left: 10px; max-width: calc(100% - 102px); }
+  .smoke-quick-controls { right: 10px; bottom: 92px; }
   .fire-controls .checkbox-label { min-height: 44px; }
   .fire-controls .checkbox-label input { width: 20px; min-height: 20px; }
   .fire-controls select,
