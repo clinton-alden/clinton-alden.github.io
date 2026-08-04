@@ -650,6 +650,7 @@ a:hover { text-decoration: underline; }
 .pm25-unhealthy { background: #f97316; }
 .pm25-very-unhealthy { background: #ef4444; }
 .pm25-hazardous { background: #a855f7; }
+.pm25-extreme { background: #7e22ce; }
 .fire-map {
   width: 100%;
   height: 650px;
@@ -928,8 +929,15 @@ a:hover { text-decoration: underline; }
     background: transparent;
     font: 600 12px var(--font-mono);
   }
-  .fire-smoke-time-control { max-width: calc(100vw - 180px); font-size: 10px; }
-  .fire-smoke-scale-control { width: min(165px, calc(100vw - 220px)); }
+  .leaflet-bottom.leaflet-left .fire-smoke-time-control {
+    max-width: calc(100vw - 20px);
+    margin-bottom: 6px;
+    font-size: 10px;
+  }
+  .leaflet-bottom.leaflet-right .fire-smoke-scale-control {
+    width: min(165px, calc(100vw - 32px));
+    margin-bottom: 68px;
+  }
   #plot-placeholder.is-visible { min-height: 420px; }
   .sounding-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sounding-diagnostics .diagnostic-wide { grid-column: span 2; }

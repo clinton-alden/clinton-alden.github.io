@@ -31,7 +31,8 @@ FIELDS = {
         "unit_scale": 1_000_000_000,
         "label": "Near-surface smoke",
         "units": "ug m-3",
-        "breaks": [1, 5, 15, 35, 75, 150],
+        "breaks": [0, 9, 35, 55, 125, 250],
+        "display_min": 1,
     },
     "column": {
         "parameter": "COLMD",
@@ -40,15 +41,16 @@ FIELDS = {
         "label": "Vertically integrated smoke",
         "units": "mg m-2",
         "breaks": [250, 1_000, 3_000, 6_000, 12_000, 25_000],
+        "display_min": 250,
     },
 }
 COLORS = np.array([
-    [254, 240, 138, 80],
-    [253, 186, 116, 110],
-    [251, 146, 60, 145],
-    [239, 68, 68, 175],
-    [190, 24, 93, 205],
-    [107, 33, 168, 225],
+    [34, 197, 94, 80],
+    [250, 204, 21, 105],
+    [249, 115, 22, 140],
+    [239, 68, 68, 170],
+    [168, 85, 247, 200],
+    [126, 34, 206, 225],
 ], dtype=np.uint8)
 WIND_PARAMETERS = {
     "UGRD": (0, 2, 2),
@@ -76,7 +78,7 @@ def main() -> None:
         for name, config in FIELDS.items():
             values, latitudes, longitudes = fields[config["parameter"]]
             regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
-            render_overlay(regular, config["breaks"], OUTPUT / name / f"f{hour:03d}.webp")
+            render_overlay(regular, config["breaks"], config["display_min"], OUTPUT / name / f"f{hour:03d}.webp")
             if name == "surface":
                 sample_pct_smoke(pct_miles, regular, regrid)
         u_values, latitudes, longitudes = fields["UGRD"]
@@ -281,12 +283,12 @@ class Regridder:
         return values[self.indices].reshape(len(self.target_lats), len(self.target_lons))
 
 
-def render_overlay(values: np.ndarray, breaks: list[float], output: Path) -> None:
+def render_overlay(values: np.ndarray, breaks: list[float], display_min: float, output: Path) -> None:
     image_values = values[::-1]
     rgba = np.zeros((*image_values.shape, 4), dtype=np.uint8)
     finite = np.isfinite(image_values)
     categories = np.digitize(np.nan_to_num(image_values, nan=0), breaks, right=False) - 1
-    visible = finite & (image_values >= breaks[0])
+    visible = finite & (image_values >= display_min)
     rgba[visible] = COLORS[np.clip(categories[visible], 0, len(COLORS) - 1)]
     Image.fromarray(rgba, mode="RGBA").save(output, "WEBP", lossless=True, method=6)
 

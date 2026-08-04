@@ -197,7 +197,7 @@ function pm25NowcastAqi(readings) {
   const nowcast = readings.reduce((total, value, index) => total + value * weight ** index, 0)
     / readings.reduce((total, _, index) => total + weight ** index, 0);
   const concentration = Math.floor(nowcast * 10) / 10;
-  const breakpoints = [[0, 9, 0, 50], [9.1, 35.4, 51, 100], [35.5, 55.4, 101, 150], [55.5, 125.4, 151, 200], [125.5, 225.4, 201, 300], [225.5, 325.4, 301, 500]];
+  const breakpoints = [[0, 9, 0, 50], [9.1, 35.4, 51, 100], [35.5, 55.4, 101, 150], [55.5, 125.4, 151, 200], [125.5, 225.4, 201, 300], [225.5, 325.4, 301, 400], [325.5, 500.4, 401, 500]];
   const [lowConcentration, highConcentration, lowAqi, highAqi] = breakpoints.find(([, high]) => concentration <= high) || [325.5, 99999.9, 501, 999];
   return Math.round((highAqi - lowAqi) / (highConcentration - lowConcentration) * (concentration - lowConcentration) + lowAqi);
 }

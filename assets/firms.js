@@ -6,6 +6,8 @@ const WEST_VIEW = {
   zoom: 4,
   bounds: [[31, -125], [50, -102]]
 };
+const PM25_BREAKS = [0, 9, 35, 55, 125, 250];
+const PM25_COLORS = ['#22c55e', '#facc15', '#f97316', '#ef4444', '#a855f7', '#7e22ce'];
 
 const state = {
   map: null,
@@ -38,7 +40,9 @@ const state = {
   lastSources: [],
   fireMarkerScale: null,
   fireRenderRequest: 0,
-  mobileIncidentListExpanded: false
+  mobileIncidentListExpanded: false,
+  urlSyncReady: false,
+  pendingIncidentState: ''
 };
 
 const els = {};
@@ -51,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMap();
   try {
     initControls();
+    applyUrlState();
   } catch (error) {
     console.error('Fire Dashboard controls failed to initialize.', error);
     setStatus(`Map controls failed: ${error.message}`, true);
@@ -58,6 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   updateBoundsLabel();
   renderActiveLayers();
+  state.urlSyncReady = true;
+  syncUrlState();
   initializeLiveLayers(initialFireData);
   window.setInterval(() => {
     loadIncidents();
@@ -69,7 +76,13 @@ async function initializeLiveLayers(initialFireData) {
   await loadCachedFireData(initialFireData);
   window.setTimeout(loadIncidents, 250);
   window.setTimeout(loadPm25, 500);
-  if (els.showSmoke.checked) window.setTimeout(syncSmokeLayer, 750);
+  if (els.showFuelMoisture.checked) window.setTimeout(loadFuelMoisture, 750);
+  if (els.showSmoke.checked) {
+    window.setTimeout(async () => {
+      await syncSmokeLayer();
+      if (els.showPctSmoke.checked) syncPctSmokeLayer();
+    }, 750);
+  }
 }
 
 window.addEventListener('load', () => {
@@ -212,7 +225,10 @@ function initMap() {
     return state.smokeScaleElement;
   };
   smokeScaleControl.addTo(state.map);
-  state.map.on('moveend', updateBoundsLabel);
+  state.map.on('moveend', () => {
+    updateBoundsLabel();
+    syncUrlState();
+  });
   state.map.on('zoomend', rerenderFireMarkersForZoom);
 }
 
@@ -235,6 +251,10 @@ function renderIncidents(data) {
     state.incidentLayer.clearLayers();
     const renderRequest = ++state.incidentRenderRequest;
     populateIncidentStates(data.incidents.features || []);
+    if (state.pendingIncidentState) {
+      setSelectFromUrl(els.incidentState, state.pendingIncidentState);
+      state.pendingIncidentState = '';
+    }
     const incidents = (data.incidents.features || []).filter(incidentMatches);
     state.filteredIncidents = incidents;
     if (!els.showIncidents.checked) {
@@ -254,6 +274,7 @@ function renderIncidents(data) {
     renderMarkers();
     renderIncidentList();
     renderIncidentPerimeters(perimeters, renderRequest);
+    syncUrlState();
 }
 
 function renderIncidentPerimeters(perimeters, renderRequest) {
@@ -404,7 +425,104 @@ function initControls() {
   els.smokeUseDeviceTime.addEventListener('click', useDeviceSmokeTimeZone);
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
   els.smokePlay.addEventListener('click', toggleSmokePlayback);
+  const controls = document.querySelector('.fire-controls');
+  controls.addEventListener('change', syncUrlState);
+  controls.addEventListener('input', event => {
+    if (event.target.matches('input[type="range"]')) syncUrlState();
+  });
   document.addEventListener('keydown', handleSmokeKeyboard, true);
+}
+
+function applyUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('layers')) return;
+
+  const layers = new Set(params.get('layers').split(',').filter(Boolean));
+  els.showFireData.checked = layers.has('satellite');
+  els.showIncidents.checked = layers.has('incidents');
+  els.showFuelMoisture.checked = layers.has('fuel');
+  els.showPm25.checked = layers.has('air');
+  els.showSmoke.checked = layers.has('smoke');
+  els.showSmokeWind.checked = layers.has('wind');
+  els.showPctSmoke.checked = layers.has('pct');
+
+  setSelectFromUrl(els.incidentFilter, params.get('incidents'));
+  state.pendingIncidentState = params.get('state') || '';
+  setSelectFromUrl(els.fuelMoistureClass, params.get('fuel'));
+  setSelectFromUrl(els.pm25Mode, params.get('air'));
+  setSelectFromUrl(els.smokeField, params.get('smoke'));
+  setSelectFromUrl(els.smokeTimezone, params.get('tz'));
+  setSelectFromUrl(els.pctSmokeMode, params.get('pct'));
+  state.smokeTimeZone = els.smokeTimezone.value;
+
+  setInputFromUrl(els.fireDayRange, params.get('days'));
+  setInputFromUrl(els.fireDate, params.get('date'), /^\d{4}-\d{2}-\d{2}$/);
+  setInputFromUrl(els.fuelMoistureDate, params.get('fuelDate'), /^\d{4}-\d{2}-\d{2}$/);
+  setNumericInputFromUrl(els.fireMinFrp, params.get('frp'));
+  setNumericInputFromUrl(els.smokeHour, params.get('hour'));
+  setNumericInputFromUrl(els.smokeOpacity, params.get('opacity'));
+  els.fireMinFrpLabel.textContent = `${els.fireMinFrp.value} MW`;
+  els.smokeOpacityLabel.textContent = `${els.smokeOpacity.value}%`;
+
+  const selectedSources = new Set((params.get('sources') || '').split(',').filter(Boolean));
+  if (selectedSources.size) {
+    document.querySelectorAll('input[name="fire-source"]').forEach(input => {
+      input.checked = selectedSources.has(input.value);
+    });
+  }
+
+  const latitude = Number(params.get('lat'));
+  const longitude = Number(params.get('lon'));
+  const zoom = Number(params.get('zoom'));
+  if (Number.isFinite(latitude) && Number.isFinite(longitude) && Number.isFinite(zoom)
+    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+    state.map.setView([latitude, longitude], clamp(zoom, 2, 19), { animate: false });
+  }
+}
+
+function setSelectFromUrl(element, value) {
+  if (value && [...element.options].some(option => option.value === value)) element.value = value;
+}
+
+function setInputFromUrl(element, value, pattern) {
+  if (value && (!pattern || pattern.test(value))) element.value = value;
+}
+
+function setNumericInputFromUrl(element, value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric >= Number(element.min) && numeric <= Number(element.max)) element.value = String(numeric);
+}
+
+function syncUrlState() {
+  if (!state.urlSyncReady || !state.map) return;
+  const params = new URLSearchParams();
+  const layers = [
+    [els.showFireData.checked, 'satellite'], [els.showIncidents.checked, 'incidents'],
+    [els.showFuelMoisture.checked, 'fuel'], [els.showPm25.checked, 'air'],
+    [els.showSmoke.checked, 'smoke'], [els.showSmoke.checked && els.showSmokeWind.checked, 'wind'],
+    [els.showPctSmoke.checked, 'pct']
+  ].filter(([active]) => active).map(([, name]) => name);
+  params.set('layers', layers.join(','));
+  params.set('sources', getSelectedSources().join(','));
+  params.set('days', els.fireDayRange.value);
+  if (els.fireDate.value) params.set('date', els.fireDate.value);
+  params.set('frp', els.fireMinFrp.value);
+  params.set('incidents', els.incidentFilter.value);
+  const incidentState = els.incidentState.value || state.pendingIncidentState;
+  if (incidentState) params.set('state', incidentState);
+  params.set('fuel', els.fuelMoistureClass.value);
+  if (els.fuelMoistureDate.value) params.set('fuelDate', els.fuelMoistureDate.value);
+  params.set('air', els.pm25Mode.value);
+  params.set('smoke', els.smokeField.value);
+  params.set('hour', els.smokeHour.value);
+  params.set('tz', els.smokeTimezone.value);
+  params.set('opacity', els.smokeOpacity.value);
+  params.set('pct', els.pctSmokeMode.value);
+  const center = state.map.getCenter();
+  params.set('lat', center.lat.toFixed(4));
+  params.set('lon', center.lng.toFixed(4));
+  params.set('zoom', state.map.getZoom().toFixed(2));
+  window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
 }
 
 function clearMapOverlays() {
@@ -417,6 +535,7 @@ function clearMapOverlays() {
   renderPm25Markers();
   syncSmokeLayer();
   renderActiveLayers();
+  syncUrlState();
 }
 
 function renderActiveLayers() {
@@ -459,6 +578,7 @@ function useDeviceSmokeTimeZone() {
     els.smokeTimezone.value = zone;
     state.smokeTimeZone = zone;
     renderSmokeOverlay();
+    syncUrlState();
   };
   if (navigator.geolocation) navigator.geolocation.getCurrentPosition(setZone, setZone, { timeout: 8000, maximumAge: 86_400_000 });
   else setZone();
@@ -538,6 +658,7 @@ function renderSmokeOverlay() {
   }
   renderSmokeWinds(hour);
   renderPctSmoke();
+  syncUrlState();
 }
 
 function clearSmokeOverlay() {
@@ -550,12 +671,14 @@ function clearSmokeOverlay() {
   if (state.smokeScaleElement) state.smokeScaleElement.hidden = true;
   state.smokeWindLayer.clearLayers();
   els.showSmokeWind.disabled = true;
+  if (els.showPctSmoke?.checked && state.pctSmokeData) renderPctSmoke();
   renderMarkers();
 }
 
 async function syncPctSmokeLayer() {
   if (!els.showPctSmoke.checked) {
     state.pctSmokeLayer.clearLayers();
+    if (!els.showSmoke.checked && state.smokeScaleElement) state.smokeScaleElement.hidden = true;
     setPctSmokeStatus('');
     return;
   }
@@ -585,10 +708,14 @@ async function syncPctSmokeLayer() {
 function renderPctSmoke() {
   state.pctSmokeLayer.clearLayers();
   const renderRequest = ++state.pctRenderRequest;
-  if (!els.showPctSmoke?.checked || !state.pctSmokeData) return;
+  if (!els.showPctSmoke?.checked || !state.pctSmokeData) {
+    if (!els.showSmoke.checked && state.smokeScaleElement) state.smokeScaleElement.hidden = true;
+    return;
+  }
   const hour = Number(els.smokeHour.value);
   const maximum = els.pctSmokeMode.value === 'max';
   const samples = state.pctSmokeData.miles || [];
+  if (!els.showSmoke.checked) renderPctSmokeScale();
   let index = 0;
   const addBatch = () => {
     if (renderRequest !== state.pctRenderRequest) return;
@@ -601,9 +728,14 @@ function renderPctSmoke() {
       const value = maximum ? Math.max(...values.filter(Number.isFinite)) : Number(values[hour]);
       if (!Number.isFinite(value)) continue;
       const line = L.polyline([[start.lat, start.lon], [endPoint.lat, endPoint.lon]], {
-        pane: 'pctPane', color: pctSmokeColor(value), weight: 5, opacity: 0.92
+        pane: 'pctPane',
+        color: pctSmokeColor(value),
+        weight: isMobileViewport() ? 10 : 7,
+        opacity: 0.92,
+        interactive: true,
+        bubblingMouseEvents: false
       });
-      line.bindPopup(`<div class="fire-popup"><strong>PCT mile ${start.mile.toLocaleString()}</strong><span>${maximum ? '48-hour maximum' : `HRRR F${String(hour).padStart(3, '0')}`}: ${formatNumber(value)} ${escapeHtml(state.pctSmokeData.units || 'ug m-3')}</span></div>`);
+      line.bindPopup(pctSmokePopupHtml(start, value, hour, maximum), { maxWidth: 260 });
       line.addTo(state.pctSmokeLayer);
     }
     if (index < samples.length - 1) window.requestAnimationFrame(addBatch);
@@ -612,10 +744,30 @@ function renderPctSmoke() {
 }
 
 function pctSmokeColor(value) {
-  const breaks = state.pctSmokeData?.breaks || [1, 5, 15, 35, 75, 150];
-  const colors = ['#fef08a', '#fdba74', '#fb923c', '#ef4444', '#be185d', '#6b21a8'];
+  const breaks = state.pctSmokeData?.breaks || PM25_BREAKS;
+  const colors = PM25_COLORS;
   const nextBreak = breaks.findIndex(limit => value < limit);
   return nextBreak === -1 ? colors.at(-1) : colors[Math.max(0, nextBreak - 1)];
+}
+
+function pctSmokePopupHtml(sample, concentration, hour, maximum) {
+  const label = maximum ? '48-hour maximum' : `HRRR F${String(hour).padStart(3, '0')}`;
+  const units = state.pctSmokeData?.units || 'ug m-3';
+  const aqi = pm25Aqi(concentration);
+  return `<div class="fire-popup"><strong>PCT mile ${sample.mile.toLocaleString()}</strong><span>${label}</span><span>Near-surface PM2.5: ${formatNumber(concentration)} ${escapeHtml(units)}</span><span>Estimated PM2.5 AQI: ${Number.isFinite(aqi) ? formatNumber(aqi) : 'Unavailable'}</span><span>Forecast guidance; AQI is calculated from the modeled PM2.5 concentration.</span></div>`;
+}
+
+function pm25Aqi(concentration) {
+  const value = Math.floor(Number(concentration) * 10) / 10;
+  if (!Number.isFinite(value) || value < 0) return NaN;
+  const bands = [
+    [0, 9.0, 0, 50], [9.1, 35.4, 51, 100], [35.5, 55.4, 101, 150],
+    [55.5, 125.4, 151, 200], [125.5, 225.4, 201, 300],
+    [225.5, 325.4, 301, 400], [325.5, 500.4, 401, 500]
+  ];
+  const band = bands.find(([, high]) => value <= high) || bands.at(-1);
+  const [lowConcentration, highConcentration, lowAqi, highAqi] = band;
+  return Math.round(((highAqi - lowAqi) / (highConcentration - lowConcentration)) * (Math.min(value, highConcentration) - lowConcentration) + lowAqi);
 }
 
 function setPctSmokeStatus(message, isError = false) {
@@ -649,8 +801,17 @@ function drawWindArrow(latitude, longitude, u, v) {
 function renderSmokeScale(field) {
   if (!state.smokeScaleElement) return;
   const breaks = field.breaks || [];
-  const colors = ['#fef08a', '#fdba74', '#fb923c', '#ef4444', '#be185d', '#6b21a8'];
+  const colors = PM25_COLORS;
   state.smokeScaleElement.innerHTML = `<strong>${escapeHtml(field.label)}</strong><span>${escapeHtml(field.units)}</span><div class="smoke-scale-colors">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
+  state.smokeScaleElement.hidden = false;
+}
+
+function renderPctSmokeScale() {
+  if (!state.smokeScaleElement || !state.pctSmokeData) return;
+  const breaks = state.pctSmokeData.breaks || PM25_BREAKS;
+  const colors = PM25_COLORS;
+  const units = state.pctSmokeData.units || 'ug m-3';
+  state.smokeScaleElement.innerHTML = `<strong>PCT near-surface smoke</strong><span>${escapeHtml(units)}</span><div class="smoke-scale-colors">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
   state.smokeScaleElement.hidden = false;
 }
 
@@ -1142,8 +1303,8 @@ function renderPm25Markers() {
 
   const aqiMode = els.pm25Mode.value === 'aqi';
   els.pm25Legend.innerHTML = aqiMode
-    ? '<span><i class="pm25-good"></i>0-50</span><span><i class="pm25-moderate"></i>51-100</span><span><i class="pm25-unhealthy"></i>101-150</span><span><i class="pm25-very-unhealthy"></i>151-200</span><span><i class="pm25-hazardous"></i>201+</span>'
-    : '<span><i class="pm25-good"></i>&lt; 9</span><span><i class="pm25-moderate"></i>9-35</span><span><i class="pm25-unhealthy"></i>35-55</span><span><i class="pm25-very-unhealthy"></i>55-125</span><span><i class="pm25-hazardous"></i>125+</span>';
+    ? '<span><i class="pm25-good"></i>0-50</span><span><i class="pm25-moderate"></i>51-100</span><span><i class="pm25-unhealthy"></i>101-150</span><span><i class="pm25-very-unhealthy"></i>151-200</span><span><i class="pm25-hazardous"></i>201-300</span><span><i class="pm25-extreme"></i>301+</span>'
+    : '<span><i class="pm25-good"></i>0-9</span><span><i class="pm25-moderate"></i>9-35</span><span><i class="pm25-unhealthy"></i>35-55</span><span><i class="pm25-very-unhealthy"></i>55-125</span><span><i class="pm25-hazardous"></i>125-250</span><span><i class="pm25-extreme"></i>250+</span>';
 
   state.pm25Rows.forEach(row => {
     const value = aqiMode ? Number(row.nowcastAqi) : Number(row.concentration);
@@ -1163,11 +1324,8 @@ function renderPm25Markers() {
 }
 
 function pm25Color(concentration) {
-  if (concentration < 9) return '#22c55e';
-  if (concentration < 35) return '#facc15';
-  if (concentration < 55) return '#f97316';
-  if (concentration < 125) return '#ef4444';
-  return '#a855f7';
+  const index = PM25_BREAKS.findIndex(limit => concentration < limit);
+  return PM25_COLORS[index === -1 ? PM25_COLORS.length - 1 : Math.max(0, index - 1)];
 }
 
 function aqiColor(aqi) {
@@ -1175,7 +1333,8 @@ function aqiColor(aqi) {
   if (aqi <= 100) return '#facc15';
   if (aqi <= 150) return '#f97316';
   if (aqi <= 200) return '#ef4444';
-  return '#a855f7';
+  if (aqi <= 300) return '#a855f7';
+  return '#7e22ce';
 }
 
 function pm25PopupHtml(row) {
