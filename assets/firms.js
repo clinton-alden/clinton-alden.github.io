@@ -33,6 +33,7 @@ const state = {
   lastCsv: '',
   lastSources: [],
   fireMarkerScale: null,
+  fireRenderRequest: 0,
   mobileIncidentListExpanded: false
 };
 
@@ -195,7 +196,7 @@ function initMap() {
 
 async function loadIncidents() {
   try {
-    const response = await fetch('assets/live/incidents.json', { cache: 'no-store' });
+    const response = await fetch(liveDataUrl('assets/live/incidents.json'), { cache: 'no-store' });
     if (!response.ok) throw new Error('Incident data unavailable.');
     renderIncidents(await response.json());
   } catch (error) {
@@ -435,11 +436,11 @@ async function syncSmokeLayer() {
   if (!state.smokeManifest) {
     setSmokeStatus('Loading latest HRRR Smoke forecast...');
     try {
-      const response = await fetch('assets/live/hrrr-smoke/manifest.json', { cache: 'no-store' });
+      const response = await fetch(liveDataUrl('assets/live/hrrr-smoke/manifest.json'), { cache: 'no-store' });
       if (!response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
       state.smokeManifest = await response.json();
       if (state.smokeManifest.available === false) throw new Error(state.smokeManifest.message || 'HRRR Smoke is not available yet.');
-      const windsResponse = await fetch('assets/live/hrrr-smoke/winds.json', { cache: 'no-store' });
+      const windsResponse = await fetch(liveDataUrl('assets/live/hrrr-smoke/winds.json'), { cache: 'no-store' });
       state.smokeWinds = windsResponse.ok ? await windsResponse.json() : null;
       const lastHour = Math.max(...(state.smokeManifest.hours || [48]));
       els.smokeHour.max = String(lastHour);
@@ -616,7 +617,7 @@ async function fetchCachedJson(url, attempts = 3) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetch(liveDataUrl(url), { cache: 'no-store' });
       if (!response.ok) throw new Error(`Cached data returned ${response.status}.`);
       return await response.json();
     } catch (error) {
@@ -629,6 +630,12 @@ async function fetchCachedJson(url, attempts = 3) {
 
 function delay(milliseconds) {
   return new Promise(resolve => window.setTimeout(resolve, milliseconds));
+}
+
+function liveDataUrl(path) {
+  // Share a fresh CDN object for ten minutes instead of relying on a stale edge response.
+  const version = Math.floor(Date.now() / (10 * 60 * 1000));
+  return `${path}?v=${version}`;
 }
 
 async function loadFuelMoisture() {
@@ -699,7 +706,7 @@ async function loadFuelMoisture() {
 
 async function loadCachedFuelMoisture(date) {
   try {
-    const response = await fetch('assets/live/fuel-moisture.json', { cache: 'no-store' });
+    const response = await fetch(liveDataUrl('assets/live/fuel-moisture.json'), { cache: 'no-store' });
     if (!response.ok) return null;
     const cached = await response.json();
     return cached.date === date ? cached : null;
@@ -867,22 +874,35 @@ function renderRows() {
 
 function renderMarkers() {
   state.layer.clearLayers();
-  if (!els.showFireData.checked) return;
+  const renderRequest = ++state.fireRenderRequest;
+  if (!els.showFireData.checked) {
+    renderActiveLayers();
+    return;
+  }
 
   const scale = fireMarkerFootprintScale();
   state.fireMarkerScale = scale;
-  state.visibleRows.forEach(row => {
-    const marker = L.rectangle(fireFootprint(row, scale), {
-      pane: 'firePane',
-      stroke: true,
-      color: row.daynight === 'N' ? '#f8fafc' : '#3b1d0a',
-      weight: 1,
-      fillColor: recencyColor(row.acquiredAtMs),
-      fillOpacity: 0.68
-    });
-    marker.bindPopup(popupHtml(row));
-    marker.addTo(state.layer);
-  });
+  const rows = state.visibleRows;
+  let index = 0;
+  const addBatch = () => {
+    if (renderRequest !== state.fireRenderRequest) return;
+    const end = Math.min(index + 350, rows.length);
+    for (; index < end; index += 1) {
+      const row = rows[index];
+      const marker = L.rectangle(fireFootprint(row, scale), {
+        pane: 'firePane',
+        stroke: true,
+        color: row.daynight === 'N' ? '#f8fafc' : '#3b1d0a',
+        weight: 1,
+        fillColor: recencyColor(row.acquiredAtMs),
+        fillOpacity: 0.68
+      });
+      marker.bindPopup(popupHtml(row));
+      marker.addTo(state.layer);
+    }
+    if (index < rows.length) window.requestAnimationFrame(addBatch);
+  };
+  window.requestAnimationFrame(addBatch);
   renderActiveLayers();
 }
 
@@ -971,7 +991,7 @@ function fuelPopupHtml(row, moisture) {
 
 async function loadPm25() {
   try {
-    const response = await fetch('assets/live/airnow-pm25.json', { cache: 'no-store' });
+    const response = await fetch(liveDataUrl('assets/live/airnow-pm25.json'), { cache: 'no-store' });
     if (!response.ok) throw new Error('AirNow PM2.5 data unavailable.');
     const data = await response.json();
     state.pm25Rows = data.rows || [];
