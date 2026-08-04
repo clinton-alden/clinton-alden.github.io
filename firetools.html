@@ -30,12 +30,12 @@
         <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
         <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
         <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script defer src="assets/live/firms.data.js"></script>
-        <script defer src="assets/live/incidents.data.js"></script>
-        <script defer src="assets/live/airnow-pm25.data.js"></script>
-        <script defer src="assets/live/hrrr-smoke/manifest.data.js"></script>
-        <script defer src="assets/live/hrrr-smoke/winds.data.js"></script>
-        <script defer src="assets/live/hrrr-smoke/pct-smoke.data.js"></script>
+        <script src="assets/live/firms.data.js"></script>
+        <script src="assets/live/incidents.data.js"></script>
+        <script src="assets/live/airnow-pm25.data.js"></script>
+        <script src="assets/live/hrrr-smoke/manifest.data.js"></script>
+        <script src="assets/live/hrrr-smoke/winds.data.js"></script>
+        <script src="assets/live/hrrr-smoke/pct-smoke.data.js"></script>
         <script src="assets/firms.js" defer></script>
         <script type="application/ld+json">
         {
@@ -285,10 +285,6 @@
                         </div>
                         <div class="fire-map-wrap">
                             <div id="fire-active-layers" class="fire-active-layers" aria-label="Active map layers"></div>
-                            <div id="smoke-quick-controls" class="smoke-quick-controls" hidden aria-label="Smoke forecast frame controls">
-                                <button id="smoke-previous-frame" type="button" aria-label="Previous smoke forecast hour">&larr;</button>
-                                <button id="smoke-next-frame" type="button" aria-label="Next smoke forecast hour">&rarr;</button>
-                            </div>
                             <div class="fire-mobile-map-tools" aria-label="Mobile map controls">
                                 <button id="mobile-layers-toggle" type="button" aria-expanded="false">Layers</button>
                                 <button id="mobile-reset-view" type="button">Reset</button>

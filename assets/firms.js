@@ -72,6 +72,10 @@ async function initializeLiveLayers(initialFireData) {
   if (els.showSmoke.checked) window.setTimeout(syncSmokeLayer, 750);
 }
 
+window.addEventListener('load', () => {
+  if (els.showSmoke?.checked) syncSmokeLayer();
+});
+
 function cacheElements() {
   [
     'fire-day-range',
@@ -120,9 +124,6 @@ function cacheElements() {
     'smoke-opacity-label',
     'smoke-options',
     'smoke-status',
-    'smoke-quick-controls',
-    'smoke-previous-frame',
-    'smoke-next-frame',
     'show-pct-smoke',
     'pct-smoke-mode',
     'pct-smoke-status'
@@ -396,15 +397,13 @@ function initControls() {
   els.pctSmokeMode.addEventListener('change', renderPctSmoke);
   els.smokeField.addEventListener('change', renderSmokeOverlay);
   els.smokeHour.addEventListener('input', renderSmokeOverlay);
-  els.smokeTimeZone.addEventListener('change', () => {
-    state.smokeTimeZone = els.smokeTimeZone.value;
+  els.smokeTimezone.addEventListener('change', () => {
+    state.smokeTimeZone = els.smokeTimezone.value;
     renderSmokeOverlay();
   });
   els.smokeUseDeviceTime.addEventListener('click', useDeviceSmokeTimeZone);
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
   els.smokePlay.addEventListener('click', toggleSmokePlayback);
-  els.smokePreviousFrame.addEventListener('click', () => advanceSmokeFrame(-1));
-  els.smokeNextFrame.addEventListener('click', () => advanceSmokeFrame(1));
   document.addEventListener('keydown', handleSmokeKeyboard, true);
 }
 
@@ -454,10 +453,10 @@ function useDeviceSmokeTimeZone() {
   const setZone = () => {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (!zone) return;
-    if (![...els.smokeTimeZone.options].some(option => option.value === zone)) {
-      els.smokeTimeZone.add(new Option(zone.replace('America/', '').replace('_', ' '), zone));
+    if (![...els.smokeTimezone.options].some(option => option.value === zone)) {
+      els.smokeTimezone.add(new Option(zone.replace('America/', '').replace('_', ' '), zone));
     }
-    els.smokeTimeZone.value = zone;
+    els.smokeTimezone.value = zone;
     state.smokeTimeZone = zone;
     renderSmokeOverlay();
   };
@@ -500,7 +499,6 @@ async function syncSmokeLayer() {
     }
   }
   els.showSmokeWind.disabled = !state.smokeWinds;
-  els.smokeQuickControls.hidden = false;
   renderSmokeOverlay();
 }
 
@@ -551,7 +549,6 @@ function clearSmokeOverlay() {
   if (state.smokeTimeElement) state.smokeTimeElement.hidden = true;
   if (state.smokeScaleElement) state.smokeScaleElement.hidden = true;
   state.smokeWindLayer.clearLayers();
-  els.smokeQuickControls.hidden = true;
   els.showSmokeWind.disabled = true;
   renderMarkers();
 }
@@ -696,7 +693,9 @@ function handleSmokeKeyboard(event) {
     return;
   }
   if (!els.showSmoke?.checked || !state.smokeManifest || event.altKey || event.ctrlKey || event.metaKey) return;
-  if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement?.tagName)) return;
+  const active = document.activeElement;
+  if (active?.tagName === 'SELECT' || active?.tagName === 'TEXTAREA'
+    || (active?.tagName === 'INPUT' && ['date', 'number', 'range', 'text'].includes(active.type))) return;
   if (event.key === 'ArrowRight') {
     event.preventDefault();
     event.stopImmediatePropagation();

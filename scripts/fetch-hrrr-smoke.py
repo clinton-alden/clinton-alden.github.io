@@ -142,7 +142,7 @@ def fetch_pct_miles() -> list[dict[str, float | int | list[float]]]:
         if not features:
             break
         for feature in features:
-            properties = feature.get("properties", {})
+            properties = feature.get("attributes", {})
             mile = float(properties.get("Mile", -1))
             geometry = feature.get("geometry", {})
             longitude = geometry.get("x")

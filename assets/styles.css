@@ -590,8 +590,6 @@ a:hover { text-decoration: underline; }
 .fire-map-wrap { position: relative; }
 .fire-active-layers { position: absolute; z-index: 1100; top: 10px; left: 52px; display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 190px); pointer-events: none; }
 .fire-active-layers span { padding: 5px 7px; border: 1px solid rgba(255,255,255,.28); border-radius: 3px; color: #f8fafc; background: rgba(8,18,34,.88); font: 600 10px var(--font-mono); }
-.smoke-quick-controls { position: absolute; right: 10px; bottom: 92px; z-index: 1100; display: flex; gap: 6px; }
-.smoke-quick-controls button { width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; color: #fff; background: rgba(8,18,34,.9); font-size: 24px; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
 .fire-toolbar {
   min-height: 44px;
   margin-bottom: 10px;
@@ -903,7 +901,6 @@ a:hover { text-decoration: underline; }
     font: 600 12px var(--font-mono);
   }
   .fire-active-layers { top: 10px; left: 10px; max-width: calc(100% - 102px); }
-  .smoke-quick-controls { right: 10px; bottom: 92px; }
   .fire-controls .checkbox-label { min-height: 44px; }
   .fire-controls .checkbox-label input { width: 20px; min-height: 20px; }
   .fire-controls select,
