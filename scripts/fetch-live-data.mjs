@@ -97,13 +97,50 @@ async function refreshFuelMoisture() {
 async function refreshIncidents() {
   try {
     const [incidents, perimeters] = await Promise.all([0, 1].map(fetchIncidentLayer));
-    await writeJson('incidents.json', { generatedAt: new Date().toISOString(), stale: false, incidents, perimeters });
+    await writeJson('incidents.json', {
+      generatedAt: new Date().toISOString(),
+      stale: false,
+      incidents,
+      perimeters: simplifyPerimeters(perimeters)
+    });
   } catch (error) {
     await retainCachedJson('incidents.json', {
       incidents: { type: 'FeatureCollection', features: [] },
       perimeters: { type: 'FeatureCollection', features: [] }
     }, error);
   }
+}
+
+function simplifyPerimeters(collection) {
+  return {
+    ...collection,
+    features: (collection.features || []).map(feature => ({
+      ...feature,
+      geometry: simplifyGeometry(feature.geometry)
+    }))
+  };
+}
+
+function simplifyGeometry(geometry) {
+  if (!geometry) return geometry;
+  if (geometry.type === 'Polygon') {
+    return { ...geometry, coordinates: geometry.coordinates.map(simplifyRing) };
+  }
+  if (geometry.type === 'MultiPolygon') {
+    return { ...geometry, coordinates: geometry.coordinates.map(polygon => polygon.map(simplifyRing)) };
+  }
+  return geometry;
+}
+
+function simplifyRing(ring) {
+  const maxPoints = 750;
+  if (ring.length <= maxPoints) return ring;
+  const stride = Math.ceil((ring.length - 1) / (maxPoints - 1));
+  const simplified = ring.filter((_, index) => index === 0 || index === ring.length - 1 || index % stride === 0);
+  const first = simplified[0];
+  const last = simplified.at(-1);
+  if (first?.[0] !== last?.[0] || first?.[1] !== last?.[1]) simplified.push([...first]);
+  return simplified;
 }
 
 async function refreshAirNowPm25() {

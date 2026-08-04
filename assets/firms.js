@@ -24,6 +24,7 @@ const state = {
   smokeTimeZone: 'America/Los_Angeles',
   incidentData: null,
   filteredIncidents: [],
+  incidentRenderRequest: 0,
   incidentListRows: [],
   fuelRows: [],
   pm25Rows: [],
@@ -207,6 +208,7 @@ async function loadIncidents() {
 function renderIncidents(data) {
     state.incidentData = data;
     state.incidentLayer.clearLayers();
+    const renderRequest = ++state.incidentRenderRequest;
     populateIncidentStates(data.incidents.features || []);
     const incidents = (data.incidents.features || []).filter(incidentMatches);
     state.filteredIncidents = incidents;
@@ -215,12 +217,8 @@ function renderIncidents(data) {
       renderIncidentList();
       return;
     }
-    const majorOnly = els.incidentFilter.value === 'major';
-    L.geoJSON(data.perimeters, {
-      filter: feature => incidents.some(incident => incident.properties.IncidentName === feature.properties.IncidentName),
-      style: { color: '#fb7185', weight: 2, fillColor: '#ef4444', fillOpacity: 0.12 },
-      onEachFeature: (feature, layer) => layer.bindPopup(incidentPopup(feature.properties))
-    }).addTo(state.incidentLayer);
+    const incidentNames = new Set(incidents.map(incident => incident.properties?.IncidentName).filter(Boolean));
+    const perimeters = (data.perimeters.features || []).filter(feature => incidentNames.has(feature.properties?.IncidentName));
     L.geoJSON(data.incidents, {
       filter: incidentMatches,
       pointToLayer: (feature, latlng) => L.marker(latlng, {
@@ -230,6 +228,24 @@ function renderIncidents(data) {
     }).addTo(state.incidentLayer);
     renderMarkers();
     renderIncidentList();
+    renderIncidentPerimeters(perimeters, renderRequest);
+}
+
+function renderIncidentPerimeters(perimeters, renderRequest) {
+  let index = 0;
+  const addBatch = () => {
+    if (renderRequest !== state.incidentRenderRequest) return;
+    const end = Math.min(index + 3, perimeters.length);
+    for (; index < end; index += 1) {
+      const feature = perimeters[index];
+      L.geoJSON(feature, {
+        style: { color: '#fb7185', weight: 2, fillColor: '#ef4444', fillOpacity: 0.12 },
+        onEachFeature: (item, layer) => layer.bindPopup(incidentPopup(item.properties))
+      }).addTo(state.incidentLayer);
+    }
+    if (index < perimeters.length) window.requestAnimationFrame(addBatch);
+  };
+  window.requestAnimationFrame(addBatch);
 }
 
 function incidentMatches(feature) {
