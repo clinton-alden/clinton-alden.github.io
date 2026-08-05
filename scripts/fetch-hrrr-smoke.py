@@ -33,6 +33,11 @@ FIELDS = {
         "units": "ug m-3",
         "breaks": [0, 9, 35, 55, 125, 250],
         "display_min": 1,
+        "colors": ["#22c55e", "#facc15", "#f97316", "#ef4444", "#a855f7", "#7e22ce"],
+        "rgba": np.array([
+            [34, 197, 94, 80], [250, 204, 21, 105], [249, 115, 22, 140],
+            [239, 68, 68, 170], [168, 85, 247, 200], [126, 34, 206, 225],
+        ], dtype=np.uint8),
     },
     "column": {
         "parameter": "COLMD",
@@ -40,18 +45,17 @@ FIELDS = {
         "unit_scale": 1_000_000,
         "label": "Vertically integrated smoke",
         "units": "mg m-2",
-        "breaks": [250, 1_000, 3_000, 6_000, 12_000, 25_000],
-        "display_min": 250,
+        "breaks": [1, 4, 7, 11, 15, 20, 25, 30, 40, 50, 75, 150, 250, 500],
+        "display_min": 1,
+        "colors": ["#c7dbed", "#91bdd7", "#4d96c2", "#1f67a7", "#158345", "#56b35d", "#a5d66a", "#fff5ad", "#ffb15c", "#f7844c", "#ef5938", "#c62129", "#ac0032", "#9b00e8"],
+        "rgba": np.array([
+            [199, 219, 237, 95], [145, 189, 215, 110], [77, 150, 194, 125], [31, 103, 167, 140],
+            [21, 131, 69, 145], [86, 179, 93, 150], [165, 214, 106, 155], [255, 245, 173, 160],
+            [255, 177, 92, 165], [247, 132, 76, 175], [239, 89, 56, 185], [198, 33, 41, 195],
+            [172, 0, 50, 210], [155, 0, 232, 225],
+        ], dtype=np.uint8),
     },
 }
-COLORS = np.array([
-    [34, 197, 94, 80],
-    [250, 204, 21, 105],
-    [249, 115, 22, 140],
-    [239, 68, 68, 170],
-    [168, 85, 247, 200],
-    [126, 34, 206, 225],
-], dtype=np.uint8)
 WIND_PARAMETERS = {
     "UGRD": (0, 2, 2),
     "VGRD": (0, 2, 3),
@@ -78,7 +82,7 @@ def main() -> None:
         for name, config in FIELDS.items():
             values, latitudes, longitudes = fields[config["parameter"]]
             regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
-            render_overlay(regular, config["breaks"], config["display_min"], OUTPUT / name / f"f{hour:03d}.webp")
+            render_overlay(regular, config["breaks"], config["display_min"], config["rgba"], OUTPUT / name / f"f{hour:03d}.webp")
             if name == "surface":
                 sample_pct_smoke(pct_miles, regular, regrid)
         u_values, latitudes, longitudes = fields["UGRD"]
@@ -99,6 +103,7 @@ def main() -> None:
                 "label": config["label"],
                 "units": config["units"],
                 "breaks": config["breaks"],
+                "colors": config["colors"],
                 "path": f"{name}/f{{hour}}.webp",
             }
             for name, config in FIELDS.items()
@@ -109,6 +114,7 @@ def main() -> None:
         "run": manifest["run"],
         "units": FIELDS["surface"]["units"],
         "breaks": FIELDS["surface"]["breaks"],
+        "colors": FIELDS["surface"]["colors"],
         "source": "Pacific Crest Trail Association mileage markers, CC BY 4.0",
         "miles": pct_miles,
     }
@@ -283,13 +289,13 @@ class Regridder:
         return values[self.indices].reshape(len(self.target_lats), len(self.target_lons))
 
 
-def render_overlay(values: np.ndarray, breaks: list[float], display_min: float, output: Path) -> None:
+def render_overlay(values: np.ndarray, breaks: list[float], display_min: float, colors: np.ndarray, output: Path) -> None:
     image_values = values[::-1]
     rgba = np.zeros((*image_values.shape, 4), dtype=np.uint8)
     finite = np.isfinite(image_values)
     categories = np.digitize(np.nan_to_num(image_values, nan=0), breaks, right=False) - 1
     visible = finite & (image_values >= display_min)
-    rgba[visible] = COLORS[np.clip(categories[visible], 0, len(COLORS) - 1)]
+    rgba[visible] = colors[np.clip(categories[visible], 0, len(colors) - 1)]
     Image.fromarray(rgba, mode="RGBA").save(output, "WEBP", lossless=True, method=6)
 
 

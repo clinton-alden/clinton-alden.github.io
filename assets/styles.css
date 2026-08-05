@@ -698,13 +698,14 @@ a:hover { text-decoration: underline; }
 .smoke-scale-colors,
 .smoke-scale-labels {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--scale-steps, 6), minmax(0, 1fr));
 }
 .smoke-scale-colors { height: 10px; margin-top: 5px; overflow: hidden; border-radius: 2px; }
 .smoke-scale-colors i { display: block; }
 .smoke-scale-labels { margin-top: 3px; color: #e2e8f0; }
 .smoke-scale-labels span { overflow: visible; transform: translateX(-1px); white-space: nowrap; }
 .smoke-scale-labels span:last-child { text-align: right; transform: translateX(0); }
+.fire-smoke-scale-control.is-noaa-column-scale { width: 390px; }
 .incident-fire-icon {
   display: grid;
   place-items: center;
@@ -937,6 +938,10 @@ a:hover { text-decoration: underline; }
   .leaflet-bottom.leaflet-right .fire-smoke-scale-control {
     width: min(165px, calc(100vw - 32px));
     margin-bottom: 68px;
+  }
+  .leaflet-bottom.leaflet-right .fire-smoke-scale-control.is-noaa-column-scale {
+    width: calc(100vw - 32px);
+    font-size: 8px;
   }
   #plot-placeholder.is-visible { min-height: 420px; }
   .sounding-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }

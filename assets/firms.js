@@ -745,7 +745,7 @@ function renderPctSmoke() {
 
 function pctSmokeColor(value) {
   const breaks = state.pctSmokeData?.breaks || PM25_BREAKS;
-  const colors = PM25_COLORS;
+  const colors = state.pctSmokeData?.colors || PM25_COLORS;
   const nextBreak = breaks.findIndex(limit => value < limit);
   return nextBreak === -1 ? colors.at(-1) : colors[Math.max(0, nextBreak - 1)];
 }
@@ -801,17 +801,19 @@ function drawWindArrow(latitude, longitude, u, v) {
 function renderSmokeScale(field) {
   if (!state.smokeScaleElement) return;
   const breaks = field.breaks || [];
-  const colors = PM25_COLORS;
-  state.smokeScaleElement.innerHTML = `<strong>${escapeHtml(field.label)}</strong><span>${escapeHtml(field.units)}</span><div class="smoke-scale-colors">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
+  const colors = field.colors || PM25_COLORS;
+  state.smokeScaleElement.classList.toggle('is-noaa-column-scale', colors.length > 6);
+  state.smokeScaleElement.innerHTML = `<strong>${escapeHtml(field.label)}</strong><span>${escapeHtml(field.units)}</span><div class="smoke-scale-colors" style="--scale-steps:${colors.length}">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels" style="--scale-steps:${breaks.length}">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
   state.smokeScaleElement.hidden = false;
 }
 
 function renderPctSmokeScale() {
   if (!state.smokeScaleElement || !state.pctSmokeData) return;
   const breaks = state.pctSmokeData.breaks || PM25_BREAKS;
-  const colors = PM25_COLORS;
+  const colors = state.pctSmokeData.colors || PM25_COLORS;
   const units = state.pctSmokeData.units || 'ug m-3';
-  state.smokeScaleElement.innerHTML = `<strong>PCT near-surface smoke</strong><span>${escapeHtml(units)}</span><div class="smoke-scale-colors">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
+  state.smokeScaleElement.classList.remove('is-noaa-column-scale');
+  state.smokeScaleElement.innerHTML = `<strong>PCT near-surface smoke</strong><span>${escapeHtml(units)}</span><div class="smoke-scale-colors" style="--scale-steps:${colors.length}">${colors.map(color => `<i style="background:${color}"></i>`).join('')}</div><div class="smoke-scale-labels" style="--scale-steps:${breaks.length}">${breaks.map(value => `<span>${formatNumber(value)}</span>`).join('')}</div>`;
   state.smokeScaleElement.hidden = false;
 }
 
