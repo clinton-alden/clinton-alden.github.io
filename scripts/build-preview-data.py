@@ -10,6 +10,8 @@ PAYLOADS = {
     "firms.json": "__FIRE_FIRMS__",
     "incidents.json": "__FIRE_INCIDENTS__",
     "airnow-pm25.json": "__FIRE_AIRNOW__",
+    "evacuations.json": "__FIRE_EVACUATIONS__",
+    "pct-closures.json": "__PCT_CLOSURES__",
     "fuel-moisture.json": "__FIRE_FUEL_MOISTURE__",
     "hrrr-smoke/manifest.json": "__HRRR_SMOKE_MANIFEST__",
     "hrrr-smoke/winds.json": "__HRRR_SMOKE_WINDS__",

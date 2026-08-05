@@ -8,6 +8,8 @@ const WEST_VIEW = {
 };
 const PM25_BREAKS = [0, 9, 35, 55, 125, 250];
 const PM25_COLORS = ['#22c55e', '#facc15', '#f97316', '#ef4444', '#a855f7', '#7e22ce'];
+const OREGON_EVACUATIONS_URL = 'https://services.arcgis.com/uUvqNMGPm7axC2dD/arcgis/rest/services/Fire_Evacuation_Areas_Public/FeatureServer/0/query';
+const CALIFORNIA_EVACUATIONS_URL = 'https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query';
 
 const state = {
   map: null,
@@ -15,8 +17,11 @@ const state = {
   fuelLayer: null,
   pm25Layer: null,
   incidentLayer: null,
+  evacuationLayer: null,
   pctSmokeLayer: null,
+  pctClosureLayer: null,
   pctSmokeData: null,
+  pctClosures: null,
   pctRenderRequest: 0,
   smokeOverlay: null,
   smokeWindLayer: null,
@@ -28,6 +33,7 @@ const state = {
   smokeScaleElement: null,
   smokeTimeZone: 'America/Los_Angeles',
   incidentData: null,
+  evacuationData: null,
   filteredIncidents: [],
   incidentRenderRequest: 0,
   incidentListRows: [],
@@ -42,14 +48,49 @@ const state = {
   fireRenderRequest: 0,
   mobileIncidentListExpanded: false,
   urlSyncReady: false,
-  pendingIncidentState: ''
+  pendingIncidentState: '',
+  initialized: false
 };
 
 const els = {};
 
 document.addEventListener('DOMContentLoaded', () => {
   cacheElements();
-  if (!els.map || typeof L === 'undefined') return;
+  initDisclaimerGate();
+});
+
+function initDisclaimerGate() {
+  if (!els.fireDisclaimerGate) {
+    startFireDashboard();
+    return;
+  }
+  document.querySelectorAll('.banner, .header, main, .footer').forEach(element => {
+    element.inert = true;
+  });
+  const updateContinueButton = () => {
+    els.fireDisclaimerContinue.disabled = !els.fireDisclaimerAgree.checked;
+  };
+  els.fireDisclaimerAgree.addEventListener('input', updateContinueButton);
+  els.fireDisclaimerAgree.addEventListener('change', updateContinueButton);
+  updateContinueButton();
+  els.fireDisclaimerContinue.addEventListener('click', () => {
+    if (!els.fireDisclaimerAgree.checked) return;
+    document.querySelectorAll('.banner, .header, main, .footer').forEach(element => {
+      element.inert = false;
+    });
+    els.fireDisclaimerGate.remove();
+    startFireDashboard();
+  });
+  els.fireDisclaimerAgree.focus();
+}
+
+function startFireDashboard() {
+  if (state.initialized) return;
+  if (!els.map || typeof L === 'undefined') {
+    window.setTimeout(startFireDashboard, 150);
+    return;
+  }
+  state.initialized = true;
 
   const initialFireData = window.__FIRE_FIRMS__ ? Promise.resolve(window.__FIRE_FIRMS__) : fetchCachedJson('assets/live/firms.json');
   initMap();
@@ -68,14 +109,18 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeLiveLayers(initialFireData);
   window.setInterval(() => {
     loadIncidents();
+    loadEvacuations();
     loadPm25();
+    loadPctClosures();
   }, 60 * 60 * 1000);
-});
+}
 
 async function initializeLiveLayers(initialFireData) {
   await loadCachedFireData(initialFireData);
   window.setTimeout(loadIncidents, 250);
+  window.setTimeout(loadEvacuations, 375);
   window.setTimeout(loadPm25, 500);
+  window.setTimeout(loadPctClosures, 625);
   if (els.showFuelMoisture.checked) window.setTimeout(loadFuelMoisture, 750);
   if (els.showSmoke.checked) {
     window.setTimeout(async () => {
@@ -86,7 +131,7 @@ async function initializeLiveLayers(initialFireData) {
 }
 
 window.addEventListener('load', () => {
-  if (els.showSmoke?.checked) syncSmokeLayer();
+  if (state.initialized && els.showSmoke?.checked) syncSmokeLayer();
 });
 
 function cacheElements() {
@@ -107,6 +152,9 @@ function cacheElements() {
     'show-pm25',
     'pm25-mode',
     'show-incidents',
+    'show-evacuations',
+    'evacuations-status',
+    'evacuations-legend',
     'incident-filter',
     'incident-state',
     'incident-summary',
@@ -138,8 +186,13 @@ function cacheElements() {
     'smoke-options',
     'smoke-status',
     'show-pct-smoke',
+    'show-pct-closures',
     'pct-smoke-mode',
-    'pct-smoke-status'
+    'pct-smoke-status',
+    'pct-closures-status',
+    'fire-disclaimer-gate',
+    'fire-disclaimer-agree',
+    'fire-disclaimer-continue'
   ].forEach(id => {
     els[toCamel(id)] = document.getElementById(id);
   });
@@ -180,8 +233,12 @@ function initMap() {
   state.map.getPane('boundariesPane').style.zIndex = 365;
   state.map.createPane('firePane');
   state.map.getPane('firePane').style.zIndex = 410;
+  state.map.createPane('evacuationPane');
+  state.map.getPane('evacuationPane').style.zIndex = 405;
   state.map.createPane('pctPane');
   state.map.getPane('pctPane').style.zIndex = 415;
+  state.map.createPane('pctClosurePane');
+  state.map.getPane('pctClosurePane').style.zIndex = 425;
   state.map.createPane('pm25Pane');
   state.map.getPane('pm25Pane').style.zIndex = 420;
   state.map.createPane('windPane');
@@ -208,7 +265,9 @@ function initMap() {
   state.pm25Layer = L.layerGroup().addTo(state.map);
   state.smokeWindLayer = L.layerGroup().addTo(state.map);
   state.pctSmokeLayer = L.layerGroup().addTo(state.map);
+  state.pctClosureLayer = L.layerGroup().addTo(state.map);
   state.incidentLayer = L.layerGroup().addTo(state.map);
+  state.evacuationLayer = L.layerGroup().addTo(state.map);
   const smokeTimeControl = L.control({ position: 'bottomleft' });
   smokeTimeControl.onAdd = () => {
     state.smokeTimeElement = L.DomUtil.create('div', 'fire-smoke-time-control');
@@ -244,6 +303,127 @@ async function loadIncidents() {
   } catch (error) {
     console.warn('Incident layer unavailable.', error);
   }
+}
+
+async function loadEvacuations() {
+  try {
+    if (window.__FIRE_EVACUATIONS__) {
+      renderEvacuations(window.__FIRE_EVACUATIONS__);
+      return;
+    }
+    const response = await fetch(liveDataUrl('assets/live/evacuations.json'), { cache: 'force-cache' });
+    if (!response.ok) throw new Error('Generated evacuation data unavailable.');
+    renderEvacuations(await response.json());
+  } catch (error) {
+    try {
+      setEvacuationsStatus('Loading official evacuation feeds...');
+      renderEvacuations(await fetchOfficialEvacuations());
+    } catch (fallbackError) {
+      console.warn('Evacuation layer unavailable.', error, fallbackError);
+      setEvacuationsStatus('Official evacuation data is unavailable right now.', true);
+    }
+  }
+}
+
+async function fetchOfficialEvacuations() {
+  const [oregon, california] = await Promise.all([
+    fetchArcGisEvacuations(OREGON_EVACUATIONS_URL, 'Fire_Evacuation_Level IN (1,2,3)'),
+    fetchArcGisEvacuations(CALIFORNIA_EVACUATIONS_URL, "STATUS IN ('EVACUATION WARNING','EVACUATION ORDER','SHELTER IN PLACE')")
+  ]);
+  return {
+    generatedAt: new Date().toISOString(),
+    stale: false,
+    coverage: 'Direct official-feed fallback for local preview.',
+    features: {
+      type: 'FeatureCollection',
+      features: [
+        ...(oregon.features || []).map(normalizeOregonEvacuation),
+        ...(california.features || []).map(normalizeCaliforniaEvacuation)
+      ].filter(Boolean)
+    }
+  };
+}
+
+async function fetchArcGisEvacuations(baseUrl, where) {
+  const params = new URLSearchParams({ where, outFields: '*', returnGeometry: 'true', resultRecordCount: '2000', f: 'geojson' });
+  const response = await fetch(`${baseUrl}?${params}`, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Official evacuation feed returned ${response.status}.`);
+  const payload = await response.json();
+  if (payload.error) throw new Error(payload.error.message || 'Official evacuation feed returned an error.');
+  return payload;
+}
+
+function normalizeOregonEvacuation(feature) {
+  const properties = feature.properties || {};
+  const level = Number(properties.Fire_Evacuation_Level);
+  const displayStatus = { 1: 'Oregon Level 1: Ready', 2: 'Oregon Level 2: Set', 3: 'Oregon Level 3: Go' }[level];
+  if (!displayStatus || !feature.geometry) return null;
+  return {
+    ...feature,
+    properties: {
+      displayStatus,
+      source: 'Oregon Department of Emergency Management',
+      sourceUrl: 'https://wildfire.oregon.gov/evacuations',
+      zoneName: properties.Evac_Area_Name,
+      zoneId: properties.GlobalID || properties.OBJECTID,
+      county: properties.County,
+      eventName: properties.Fire_Name,
+      updatedAt: properties.last_edited_date || properties.created_date
+    }
+  };
+}
+
+function normalizeCaliforniaEvacuation(feature) {
+  const properties = feature.properties || {};
+  const status = String(properties.STATUS || '').trim();
+  if (!status || !feature.geometry) return null;
+  return {
+    ...feature,
+    properties: {
+      displayStatus: `California ${status.replace(/\b\w/g, character => character.toUpperCase())}`,
+      source: 'Cal OES evacuation aggregation layer',
+      sourceUrl: 'https://experience.arcgis.com/experience/5e3c140030bb4a3b9cbd4e068d05631f',
+      zoneName: properties.ZONE_NAME,
+      zoneId: properties.ZONE_ID,
+      county: properties.COUNTY,
+      eventName: properties.EVENT_TYPE,
+      updatedAt: properties.STATEWIDE_LAST_UPDATED || properties.EDIT_DATE
+    }
+  };
+}
+
+function renderEvacuations(data) {
+  state.evacuationData = data;
+  state.evacuationLayer.clearLayers();
+  const features = data.features?.features || [];
+  setEvacuationsStatus(`${features.length.toLocaleString()} official evacuation area${features.length === 1 ? '' : 's'}${data.stale ? ' (refresh delayed)' : ''}.`);
+  els.evacuationsLegend.hidden = !els.showEvacuations.checked;
+  if (!els.showEvacuations.checked) {
+    renderActiveLayers();
+    return;
+  }
+  L.geoJSON(data.features, {
+    style: feature => evacuationStyle(feature.properties),
+    onEachFeature: (feature, layer) => layer.bindPopup(evacuationPopup(feature.properties), { maxWidth: 300 })
+  }).addTo(state.evacuationLayer);
+  renderActiveLayers();
+  syncUrlState();
+}
+
+function evacuationStyle(properties = {}) {
+  const status = properties.displayStatus || '';
+  const color = status.includes('Go') || status.includes('Order') ? '#dc2626'
+    : status.includes('Set') || status.includes('Warning') ? '#eab308'
+      : status.includes('Ready') ? '#16a34a' : '#2563eb';
+  return { pane: 'evacuationPane', color, weight: 2, fillColor: color, fillOpacity: 0.23 };
+}
+
+function evacuationPopup(properties = {}) {
+  const title = properties.zoneName || properties.zoneId || properties.county || 'Official evacuation area';
+  const source = properties.source || 'Official source';
+  const updated = properties.updatedAt ? formatDateTime(properties.updatedAt) : 'Update time unavailable';
+  const officialUrl = properties.sourceUrl || 'https://wildfire.oregon.gov/evacuations';
+  return `<div class="fire-popup"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(properties.displayStatus || 'Status unavailable')}</span><span>${escapeHtml(properties.eventName || properties.county || '')}</span><span>${escapeHtml(source)} updated ${escapeHtml(updated)}</span><span>Verify with local officials before making safety decisions.</span><a href="${escapeHtml(officialUrl)}" target="_blank" rel="noopener">Open official source</a></div>`;
 }
 
 function renderIncidents(data) {
@@ -354,6 +534,7 @@ function incidentPopup(properties = {}) {
 }
 
 function initControls() {
+  els.smokeOptions.open = false;
   const today = new Date().toISOString().slice(0, 10);
   const latestDailyObservation = new Date();
   latestDailyObservation.setUTCDate(latestDailyObservation.getUTCDate() - 1);
@@ -388,6 +569,9 @@ function initControls() {
   els.showFireData.addEventListener('change', () => { renderMarkers(); renderActiveLayers(); });
   els.showIncidents.addEventListener('change', () => {
     if (state.incidentData) renderIncidents(state.incidentData);
+  });
+  els.showEvacuations.addEventListener('change', () => {
+    if (state.evacuationData) renderEvacuations(state.evacuationData);
   });
   els.incidentFilter.addEventListener('change', () => {
     if (state.incidentData) renderIncidents(state.incidentData);
@@ -425,6 +609,7 @@ function initControls() {
   els.showSmoke.addEventListener('change', syncSmokeLayer);
   els.showSmokeWind.addEventListener('change', renderSmokeOverlay);
   els.showPctSmoke.addEventListener('change', syncPctSmokeLayer);
+  els.showPctClosures.addEventListener('change', renderPctClosures);
   els.pctSmokeMode.addEventListener('change', renderPctSmoke);
   els.smokeField.addEventListener('change', renderSmokeOverlay);
   els.smokeHour.addEventListener('input', renderSmokeOverlay);
@@ -450,11 +635,13 @@ function applyUrlState() {
   const layers = new Set(params.get('layers').split(',').filter(Boolean));
   els.showFireData.checked = layers.has('satellite');
   els.showIncidents.checked = layers.has('incidents');
+  els.showEvacuations.checked = layers.has('evacuations');
   els.showFuelMoisture.checked = layers.has('fuel');
   els.showPm25.checked = layers.has('air');
   els.showSmoke.checked = layers.has('smoke');
   els.showSmokeWind.checked = layers.has('wind');
   els.showPctSmoke.checked = layers.has('pct');
+  els.showPctClosures.checked = layers.has('pctclosures');
 
   setSelectFromUrl(els.incidentFilter, params.get('incidents'));
   state.pendingIncidentState = params.get('state') || '';
@@ -508,9 +695,10 @@ function syncUrlState() {
   const params = new URLSearchParams();
   const layers = [
     [els.showFireData.checked, 'satellite'], [els.showIncidents.checked, 'incidents'],
+    [els.showEvacuations.checked, 'evacuations'],
     [els.showFuelMoisture.checked, 'fuel'], [els.showPm25.checked, 'air'],
     [els.showSmoke.checked, 'smoke'], [els.showSmoke.checked && els.showSmokeWind.checked, 'wind'],
-    [els.showPctSmoke.checked, 'pct']
+    [els.showPctSmoke.checked, 'pct'], [els.showPctClosures.checked, 'pctclosures']
   ].filter(([active]) => active).map(([, name]) => name);
   params.set('layers', layers.join(','));
   params.set('sources', getSelectedSources().join(','));
@@ -537,13 +725,17 @@ function syncUrlState() {
 
 function clearMapOverlays() {
   els.showIncidents.checked = false;
+  els.showEvacuations.checked = false;
   els.showFuelMoisture.checked = false;
   els.showPm25.checked = false;
   els.showSmoke.checked = false;
+  els.showPctClosures.checked = false;
   renderIncidents(state.incidentData || { incidents: { features: [] }, perimeters: { features: [] } });
+  renderEvacuations(state.evacuationData || { features: { type: 'FeatureCollection', features: [] } });
   renderFuelMarkers();
   renderPm25Markers();
   syncSmokeLayer();
+  renderPctClosures();
   renderActiveLayers();
   syncUrlState();
 }
@@ -553,8 +745,10 @@ function renderActiveLayers() {
   if (!container) return;
   const layers = [
     [els.showFireData.checked, 'Satellite'], [els.showIncidents.checked, els.incidentFilter.value === 'major' ? 'Major fires' : 'Incidents'],
+    [els.showEvacuations.checked, 'Evacuations'],
     [els.showFuelMoisture.checked, 'Fuel'], [els.showPm25.checked, els.pm25Mode.value === 'aqi' ? 'PM2.5 AQI' : 'PM2.5'],
-    [els.showSmoke.checked, `Smoke F${String(els.smokeHour.value).padStart(3, '0')}`], [els.showSmoke.checked && els.showSmokeWind.checked, 'Wind']
+    [els.showSmoke.checked, `Smoke F${String(els.smokeHour.value).padStart(3, '0')}`], [els.showSmoke.checked && els.showSmokeWind.checked, 'Wind'],
+    [els.showPctClosures.checked, 'PCT closures']
   ].filter(([active]) => active);
   container.innerHTML = layers.map(([, label]) => `<span>${escapeHtml(label)}</span>`).join('');
 }
@@ -603,7 +797,6 @@ async function syncSmokeLayer() {
   }
 
   els.showSmokeWind.checked = true;
-  els.smokeOptions.open = true;
 
   if (!state.smokeManifest) {
     setSmokeStatus('Loading latest HRRR Smoke forecast...');
@@ -752,6 +945,111 @@ function renderPctSmoke() {
     if (index < samples.length - 1) window.requestAnimationFrame(addBatch);
   };
   window.requestAnimationFrame(addBatch);
+}
+
+async function loadPctClosures() {
+  if (state.pctClosures) {
+    renderPctClosures();
+    return;
+  }
+  setPctClosuresStatus('Loading PCTA closure locations...');
+  try {
+    const response = window.__PCT_CLOSURES__ ? null : await fetch(liveDataUrl('assets/live/pct-closures.json'), { cache: 'force-cache' });
+    if (response && !response.ok) throw new Error('PCTA closure locations are not available yet.');
+    state.pctClosures = window.__PCT_CLOSURES__ || await response.json();
+    const count = state.pctClosures.rows?.length || 0;
+    setPctClosuresStatus(`${count.toLocaleString()} PCTA closure and alert location${count === 1 ? '' : 's'}${state.pctClosures.stale ? ' (refresh delayed)' : ''}.`);
+    renderPctClosures();
+  } catch (error) {
+    setPctClosuresStatus(error.message || 'Unable to load PCTA closure locations.', true);
+  }
+}
+
+function renderPctClosures() {
+  state.pctClosureLayer.clearLayers();
+  if (!els.showPctClosures?.checked || !state.pctClosures) {
+    renderActiveLayers();
+    return;
+  }
+  (state.pctClosures.rows || []).forEach(closure => {
+    const latitude = Number(closure.latitude);
+    const longitude = Number(closure.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    renderPctClosureGeometry(closure.geometry);
+    L.circleMarker([latitude, longitude], {
+      pane: 'pctClosurePane',
+      radius: 8,
+      color: '#fff7ed',
+      weight: 2,
+      fillColor: '#dc2626',
+      fillOpacity: 0.95
+    }).bindPopup(pctClosurePopupHtml(closure), { maxWidth: 280 }).addTo(state.pctClosureLayer);
+  });
+  renderActiveLayers();
+}
+
+function renderPctClosureGeometry(geometry) {
+  if (!geometry) return;
+  const polygonStyle = { pane: 'pctClosurePane', color: '#dc2626', weight: 1.5, fillColor: '#dc2626', fillOpacity: 0.2, interactive: false };
+  (geometry.polygons?.features || []).forEach(feature => {
+    L.geoJSON(feature, { style: polygonStyle, interactive: false }).addTo(state.pctClosureLayer);
+  });
+  (geometry.lines?.features || []).forEach(feature => {
+    const lines = closureLineCoordinates(feature.geometry);
+    lines.forEach(coordinates => {
+      const corridor = closureCorridorCoordinates(coordinates, 16093.4);
+      if (corridor.length) L.polygon(corridor, {
+        pane: 'pctClosurePane', stroke: false, fillColor: '#dc2626', fillOpacity: 0.14, interactive: false
+      }).addTo(state.pctClosureLayer);
+      L.polyline(coordinates.map(([longitude, latitude]) => [latitude, longitude]), {
+        pane: 'pctClosurePane', color: '#b91c1c', weight: 3, opacity: 0.9, interactive: false
+      }).addTo(state.pctClosureLayer);
+    });
+  });
+}
+
+function closureLineCoordinates(geometry) {
+  if (geometry?.type === 'LineString') return [geometry.coordinates || []];
+  if (geometry?.type === 'MultiLineString') return geometry.coordinates || [];
+  return [];
+}
+
+function closureCorridorCoordinates(coordinates, radiusMeters) {
+  if (coordinates.length < 2) return [];
+  const left = [];
+  const right = [];
+  coordinates.forEach(([longitude, latitude], index) => {
+    const previous = coordinates[Math.max(0, index - 1)];
+    const next = coordinates[Math.min(coordinates.length - 1, index + 1)];
+    const meanLatitude = ((previous[1] + next[1]) / 2) * Math.PI / 180;
+    const east = (next[0] - previous[0]) * 111320 * Math.cos(meanLatitude);
+    const north = (next[1] - previous[1]) * 110540;
+    const length = Math.hypot(east, north);
+    if (!Number.isFinite(length) || length === 0) return;
+    const offsetEast = -north / length * radiusMeters;
+    const offsetNorth = east / length * radiusMeters;
+    left.push(offsetCoordinate(latitude, longitude, offsetEast, offsetNorth));
+    right.push(offsetCoordinate(latitude, longitude, -offsetEast, -offsetNorth));
+  });
+  if (left.length < 2 || right.length < 2) return [];
+  return [...left, ...right.reverse(), left[0]];
+}
+
+function offsetCoordinate(latitude, longitude, eastMeters, northMeters) {
+  const latitudeOffset = northMeters / 110540;
+  const longitudeOffset = eastMeters / (111320 * Math.max(Math.cos(latitude * Math.PI / 180), 0.2));
+  return [latitude + latitudeOffset, longitude + longitudeOffset];
+}
+
+function pctClosurePopupHtml(closure) {
+  const retrievedAt = state.pctClosures?.generatedAt ? `Retrieved ${formatDateTime(state.pctClosures.generatedAt)}` : 'Retrieval time unavailable';
+  const corridor = closure.geometry?.lines?.features?.length ? 'Mapped closure corridor includes a 10-mile buffer on either side of PCTA linework.' : 'Official PCTA closure and alert location.';
+  return `<div class="fire-popup"><strong>${escapeHtml(closure.name || 'PCT closure or alert')}</strong><span>${escapeHtml(retrievedAt)}</span><span>${escapeHtml(corridor)}</span><a href="${escapeHtml(closure.url || 'https://closures.pcta.org/')}" target="_blank" rel="noopener">View on PCTA Closures</a></div>`;
+}
+
+function setPctClosuresStatus(message, isError = false) {
+  els.pctClosuresStatus.textContent = message;
+  els.pctClosuresStatus.classList.toggle('is-error', isError);
 }
 
 function pctSmokeColor(value) {
@@ -1457,6 +1755,11 @@ function setFuelStatus(message, isError = false) {
 function setSmokeStatus(message, isError = false) {
   els.smokeStatus.textContent = message;
   els.smokeStatus.classList.toggle('is-error', isError);
+}
+
+function setEvacuationsStatus(message, isError = false) {
+  els.evacuationsStatus.textContent = message;
+  els.evacuationsStatus.classList.toggle('is-error', isError);
 }
 
 function formatCoordinate(value) {

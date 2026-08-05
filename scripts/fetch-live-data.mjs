@@ -8,6 +8,8 @@ const firmsBase = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv';
 const femsUrl = 'https://fems.fs2c.usda.gov/api/climatology/graphql';
 const incidentBase = 'https://services9.arcgis.com/RHVPKKiFTONKtxq3/ArcGIS/rest/services/USA_Wildfires_v1/FeatureServer';
 const airnowBase = 'https://s3-us-west-1.amazonaws.com/files.airnowtech.org/airnow/today';
+const oregonEvacuationsUrl = 'https://services.arcgis.com/uUvqNMGPm7axC2dD/arcgis/rest/services/Fire_Evacuation_Areas_Public/FeatureServer/0';
+const californiaEvacuationsUrl = 'https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0';
 const requestTimeoutMs = 60_000;
 const skipFuelMoisture = process.argv.includes('--skip-fuel-moisture');
 
@@ -20,6 +22,7 @@ if (!skipFuelMoisture) {
 
 await refreshIncidents();
 await refreshAirNowPm25();
+await refreshEvacuations();
 
 async function refreshFirms() {
   const fireResults = await Promise.allSettled(sources.map(async source => {
@@ -193,6 +196,90 @@ async function refreshAirNowPm25() {
   }
 }
 
+async function refreshEvacuations() {
+  try {
+    const [oregon, california] = await Promise.all([
+      fetchArcGisFeatures(oregonEvacuationsUrl, 'Fire_Evacuation_Level IN (1,2,3)'),
+      fetchArcGisFeatures(californiaEvacuationsUrl, "STATUS IN ('EVACUATION WARNING','EVACUATION ORDER','SHELTER IN PLACE')")
+    ]);
+    const features = [
+      ...oregon.features.map(normalizeOregonEvacuation),
+      ...california.features.map(normalizeCaliforniaEvacuation)
+    ].filter(Boolean);
+    await writeJson('evacuations.json', {
+      generatedAt: new Date().toISOString(),
+      stale: false,
+      coverage: 'Oregon Ready/Set/Go areas and participating California county feeds only.',
+      features: { type: 'FeatureCollection', features }
+    });
+  } catch (error) {
+    await retainCachedJson('evacuations.json', {
+      coverage: 'Oregon Ready/Set/Go areas and participating California county feeds only.',
+      features: { type: 'FeatureCollection', features: [] }
+    }, error);
+  }
+}
+
+async function fetchArcGisFeatures(baseUrl, where) {
+  const countParams = new URLSearchParams({ where, returnCountOnly: 'true', f: 'json' });
+  const count = Number((await fetchJson(`${baseUrl}/query?${countParams}`)).count || 0);
+  const features = [];
+  const pageSize = 1_000;
+  for (let offset = 0; offset < count; offset += pageSize) {
+    const params = new URLSearchParams({
+      where,
+      outFields: '*',
+      returnGeometry: 'true',
+      resultOffset: String(offset),
+      resultRecordCount: String(pageSize),
+      orderByFields: 'OBJECTID ASC',
+      f: 'geojson'
+    });
+    const page = await fetchJson(`${baseUrl}/query?${params}`);
+    features.push(...(page.features || []));
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+function normalizeOregonEvacuation(feature) {
+  const properties = feature.properties || {};
+  const level = Number(properties.Fire_Evacuation_Level);
+  const status = { 1: 'Oregon Level 1: Ready', 2: 'Oregon Level 2: Set', 3: 'Oregon Level 3: Go' }[level];
+  if (!status || !feature.geometry) return null;
+  return {
+    ...feature,
+    properties: {
+      displayStatus: status,
+      source: 'Oregon Department of Emergency Management',
+      sourceUrl: 'https://wildfire.oregon.gov/evacuations',
+      zoneName: properties.Evac_Area_Name,
+      zoneId: properties.GlobalID || properties.OBJECTID,
+      county: properties.County,
+      eventName: properties.Fire_Name,
+      updatedAt: properties.last_edited_date || properties.created_date
+    }
+  };
+}
+
+function normalizeCaliforniaEvacuation(feature) {
+  const properties = feature.properties || {};
+  const status = String(properties.STATUS || '').trim();
+  if (!status || !feature.geometry) return null;
+  return {
+    ...feature,
+    properties: {
+      displayStatus: `California ${status.replace(/\b\w/g, character => character.toUpperCase())}`,
+      source: 'Cal OES evacuation aggregation layer',
+      sourceUrl: 'https://experience.arcgis.com/experience/5e3c140030bb4a3b9cbd4e068d05631f',
+      zoneName: properties.ZONE_NAME,
+      zoneId: properties.ZONE_ID,
+      county: properties.COUNTY,
+      eventName: properties.EVENT_TYPE,
+      updatedAt: properties.STATEWIDE_LAST_UPDATED || properties.EDIT_DATE
+    }
+  };
+}
+
 function pm25NowcastAqi(readings) {
   if (readings.length < 2) return null;
   const maximum = Math.max(...readings);
@@ -277,6 +364,7 @@ async function writeJson(name, value) {
     'firms.json': '__FIRE_FIRMS__',
     'incidents.json': '__FIRE_INCIDENTS__',
     'airnow-pm25.json': '__FIRE_AIRNOW__',
+    'evacuations.json': '__FIRE_EVACUATIONS__',
     'fuel-moisture.json': '__FIRE_FUEL_MOISTURE__'
   }[name];
   if (globalName) {

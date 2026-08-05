@@ -4,13 +4,13 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Wildfire, Smoke, and PCT Map | Clinton Alden</title>
-        <meta name="description" content="Interactive wildfire and smoke map for the western United States, with FIRMS satellite detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <meta name="description" content="Interactive wildfire and smoke map for the western United States, with FIRMS satellite detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
         <meta name="author" content="Clinton Alden" />
         <link rel="canonical" href="https://clintonalden.com/firetools.html" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Clinton Alden" />
         <meta property="og:title" content="Wildfire, Smoke, and PCT Map | Clinton Alden" />
-        <meta property="og:description" content="Map satellite fire detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <meta property="og:description" content="Map satellite fire detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
         <meta property="og:url" content="https://clintonalden.com/firetools.html" />
         <meta property="og:image" content="https://clintonalden.com/assets/example_firemap.png" />
         <meta property="og:image:type" content="image/png" />
@@ -19,7 +19,7 @@
         <meta property="og:image:height" content="1092" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Wildfire, Smoke, and PCT Map | Clinton Alden" />
-        <meta name="twitter:description" content="Map satellite fire detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <meta name="twitter:description" content="Map satellite fire detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
         <meta name="twitter:image" content="https://clintonalden.com/assets/example_firemap.png" />
         <meta name="twitter:image:alt" content="Fire Dashboard showing smoke, wind, Pacific Crest Trail conditions, and active fire incidents across the western United States" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,6 +36,8 @@
         <script src="assets/live/firms.data.js"></script>
         <script src="assets/live/incidents.data.js"></script>
         <script src="assets/live/airnow-pm25.data.js"></script>
+        <script src="assets/live/evacuations.data.js"></script>
+        <script src="assets/live/pct-closures.data.js"></script>
         <script src="assets/live/hrrr-smoke/manifest.data.js"></script>
         <script src="assets/live/hrrr-smoke/winds.data.js"></script>
         <script src="assets/live/hrrr-smoke/pct-smoke.data.js"></script>
@@ -48,8 +50,8 @@
           "url": "https://clintonalden.com/firetools.html",
           "applicationCategory": "WeatherApplication",
           "operatingSystem": "Web",
-          "description": "An interactive wildfire and smoke map with FIRMS satellite detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions.",
-          "featureList": "FIRMS satellite detections, incident boundaries, AirNow PM2.5, HRRR Smoke, surface wind, Pacific Crest Trail smoke conditions",
+          "description": "An interactive wildfire and smoke map with FIRMS satellite detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions.",
+          "featureList": "FIRMS satellite detections, official evacuation areas, incident boundaries, AirNow PM2.5, HRRR Smoke, surface wind, Pacific Crest Trail smoke conditions",
           "isAccessibleForFree": true,
           "offers": {
             "@type": "Offer",
@@ -60,6 +62,16 @@
         </script>
     </head>
     <body class="skip-banner-on-load">
+        <div id="fire-disclaimer-gate" class="fire-disclaimer-gate" role="dialog" aria-modal="true" aria-labelledby="fire-disclaimer-title" aria-describedby="fire-disclaimer-description">
+            <div class="fire-disclaimer-dialog">
+                <p class="fire-disclaimer-kicker">Fire Dashboard</p>
+                <h1 id="fire-disclaimer-title">Important Safety Notice</h1>
+                <p id="fire-disclaimer-description">This dashboard combines automated, preliminary observations and forecast guidance. It is for informational and educational use only. It is not an emergency alerting service, operational decision support, or a substitute for instructions from public-safety officials.</p>
+                <p>Evacuation information is limited to official Oregon Ready/Set/Go areas and participating California county feeds. Coverage and update timing vary. Always verify conditions, closures, evacuation status, and routes with local emergency management, fire agencies, and the Pacific Crest Trail Association.</p>
+                <label class="fire-disclaimer-accept"><input id="fire-disclaimer-agree" type="checkbox" /><span>I understand this notice and will not rely on this dashboard as my sole source for safety decisions.</span></label>
+                <button id="fire-disclaimer-continue" class="btn primary" type="button" disabled>View dashboard</button>
+            </div>
+        </div>
         <div class="banner">
             <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
         </div>
@@ -131,6 +143,12 @@
                             <label for="incident-state">State</label>
                             <select id="incident-state"><option value="">All states</option></select>
                             </details>
+                        </fieldset>
+
+                        <fieldset class="fire-fieldset fire-evacuations-section">
+                            <legend>Evacuations</legend>
+                            <label class="checkbox-label"><input id="show-evacuations" type="checkbox" checked /><span>Show official evacuation areas</span></label>
+                            <p id="evacuations-status" class="fire-status" aria-live="polite">Loading official evacuation areas...</p>
                         </fieldset>
 
                         <fieldset class="fire-fieldset fire-fuel-section">
@@ -210,10 +228,14 @@
                         </fieldset>
 
                         <fieldset class="fire-fieldset fire-pct-section">
-                            <legend>PCT Smoke</legend>
+                            <legend>Pacific Crest Trail</legend>
                             <label class="checkbox-label">
                                 <input id="show-pct-smoke" type="checkbox" />
                                 <span>Show Pacific Crest Trail smoke</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input id="show-pct-closures" type="checkbox" />
+                                <span>Show PCTA closure and alert locations</span>
                             </label>
                             <details class="fire-options">
                                 <summary>PCT smoke options</summary>
@@ -224,6 +246,7 @@
                                 </select>
                             </details>
                             <p id="pct-smoke-status" class="fire-status fire-layer-status" aria-live="polite"></p>
+                            <p id="pct-closures-status" class="fire-status fire-layer-status" aria-live="polite"></p>
                         </fieldset>
 
                         <details class="fire-options fire-advanced-options">
@@ -288,6 +311,12 @@
                                 <span><i class="pm25-hazardous"></i>125-250</span>
                                 <span><i class="pm25-extreme"></i>250+</span>
                             </div>
+                            <div id="evacuations-legend" class="fire-legend" hidden aria-label="Evacuation status color legend">
+                                <span><i class="evac-ready"></i>OR Ready</span>
+                                <span><i class="evac-set"></i>OR Set / CA Warning</span>
+                                <span><i class="evac-go"></i>OR Go / CA Order</span>
+                                <span><i class="evac-shelter"></i>CA Shelter in place</span>
+                            </div>
                         </div>
                         <div class="fire-map-wrap">
                             <div id="fire-active-layers" class="fire-active-layers" aria-label="Active map layers"></div>
@@ -322,10 +351,12 @@
                         <p><strong>Incidents and perimeters:</strong> NIFC/IRWIN incident data, refreshed hourly.</p>
                         <p><strong>Smoke and wind:</strong> NOAA HRRR Smoke forecast, refreshed every six hours.</p>
                         <p><strong>PCT smoke:</strong> HRRR near-surface smoke sampled at Pacific Crest Trail Association mile markers (CC BY 4.0).</p>
+                        <p><strong>PCT closures:</strong> Pacific Crest Trail Association closure and alert locations, refreshed hourly. Mapped closure lines include a 10-mile buffer on either side.</p>
                         <p><strong>Fuel moisture:</strong> NFDRS/RAWS observations, refreshed with the six-hour data cycle.</p>
                         <p><strong>Air quality:</strong> AirNow official PM2.5 monitoring sites, refreshed hourly.</p>
+                        <p><strong>Evacuations:</strong> Oregon Ready/Set/Go and participating California county feeds via Cal OES, refreshed hourly. Coverage is not comprehensive.</p>
                     </div>
-                    <p class="fire-disclaimer"><strong>Important:</strong> This dashboard contains preliminary, automated data and forecast guidance. It is provided for informational and educational use only, is not operational decision support, and must not be used as the sole basis for public-safety or fire-management decisions.</p>
+                    <p class="fire-disclaimer"><strong>Important:</strong> This dashboard contains preliminary, automated data and forecast guidance. It is provided for informational and educational use only, is not operational decision support, and must not be used as the sole basis for public-safety or fire-management decisions. Verify evacuation information with local officials.</p>
                 </div>
             </section>
         </main>
