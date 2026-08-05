@@ -114,11 +114,15 @@ async function refreshIncidents() {
 function simplifyPerimeters(collection) {
   return {
     ...collection,
-    features: (collection.features || []).map(feature => ({
-      ...feature,
-      geometry: simplifyGeometry(feature.geometry)
-    }))
+    features: (collection.features || [])
+      .map(feature => ({ ...feature, geometry: simplifyGeometry(feature.geometry) }))
+      .sort((a, b) => featureAcres(b) - featureAcres(a))
   };
+}
+
+function featureAcres(feature) {
+  const properties = feature.properties || {};
+  return Number(properties.DailyAcres || properties.GISAcres || properties.CalculatedAcres || 0);
 }
 
 function simplifyGeometry(geometry) {
@@ -238,7 +242,7 @@ async function fetchIncidentLayer(layerId) {
       where,
       ...spatialParams,
       outFields: '*',
-      orderByFields: 'OBJECTID ASC',
+      orderByFields: `${sizeField} DESC, OBJECTID ASC`,
       resultOffset: String(offset),
       resultRecordCount: String(pageSize),
       f: 'geojson'

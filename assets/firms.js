@@ -262,8 +262,10 @@ function renderIncidents(data) {
       renderIncidentList();
       return;
     }
-    const incidentNames = new Set(incidents.map(incident => incident.properties?.IncidentName).filter(Boolean));
-    const perimeters = (data.perimeters.features || []).filter(feature => incidentNames.has(feature.properties?.IncidentName));
+    const incidentNames = new Set(incidents.map(incident => perimeterNameKey(incident.properties?.IncidentName)).filter(Boolean));
+    const perimeters = (data.perimeters.features || [])
+      .filter(feature => incidentNames.has(perimeterNameKey(feature.properties?.IncidentName)))
+      .sort((a, b) => incidentAcres(b.properties) - incidentAcres(a.properties));
     L.geoJSON(data.incidents, {
       filter: incidentMatches,
       pointToLayer: (feature, latlng) => L.marker(latlng, {
@@ -299,6 +301,14 @@ function incidentMatches(feature) {
   const majorOnly = els.incidentFilter.value === 'major';
   const stateFilter = els.incidentState.value;
   return (!majorOnly || incidentAcres(properties) >= 1000) && (!stateFilter || properties.POOState === stateFilter);
+}
+
+function perimeterNameKey(name) {
+  return String(name || '')
+    .replace(/^\s*\d{3,5}\s+/, '')
+    .replace(/[^a-z0-9]+/gi, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 function populateIncidentStates(features) {
@@ -564,8 +574,9 @@ function setMobileLayersOpen(open) {
 function setMobileIncidentsOpen(open) {
   if (!isMobileViewport()) return;
   const results = document.getElementById('fire-results');
-  results.classList.toggle('is-mobile-open', open);
-  els.mobileIncidentsToggle.setAttribute('aria-expanded', String(open));
+  if (open) {
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function useDeviceSmokeTimeZone() {

@@ -3,22 +3,25 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Fire Weather Tools | Clinton Alden</title>
-        <meta name="description" content="Interactive VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts across the western United States." />
+        <title>Wildfire, Smoke, and PCT Map | Clinton Alden</title>
+        <meta name="description" content="Interactive wildfire and smoke map for the western United States, with FIRMS satellite detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
         <meta name="author" content="Clinton Alden" />
-        <meta name="canonical" href="https://clintonalden.com/firetools.html" />
+        <link rel="canonical" href="https://clintonalden.com/firetools.html" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Clinton Alden" />
-        <meta property="og:title" content="Fire Weather Tools | Clinton Alden" />
-        <meta property="og:description" content="Map VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts." />
+        <meta property="og:title" content="Wildfire, Smoke, and PCT Map | Clinton Alden" />
+        <meta property="og:description" content="Map satellite fire detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
         <meta property="og:url" content="https://clintonalden.com/firetools.html" />
-        <meta property="og:image" content="https://clintonalden.com/assets/banner.jpeg" />
-        <meta property="og:image:alt" content="Mountain landscape" />
+        <meta property="og:image" content="https://clintonalden.com/assets/example_firemap.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:alt" content="Fire Dashboard showing smoke, wind, Pacific Crest Trail conditions, and active fire incidents across the western United States" />
+        <meta property="og:image:width" content="1396" />
+        <meta property="og:image:height" content="1092" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Fire Weather Tools | Clinton Alden" />
-        <meta name="twitter:description" content="Map VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts." />
-        <meta name="twitter:image" content="https://clintonalden.com/assets/banner.jpeg" />
-        <meta name="twitter:image:alt" content="Mountain landscape" />
+        <meta name="twitter:title" content="Wildfire, Smoke, and PCT Map | Clinton Alden" />
+        <meta name="twitter:description" content="Map satellite fire detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <meta name="twitter:image" content="https://clintonalden.com/assets/example_firemap.png" />
+        <meta name="twitter:image:alt" content="Fire Dashboard showing smoke, wind, Pacific Crest Trail conditions, and active fire incidents across the western United States" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="preload" href="assets/live/firms.json" as="fetch" crossorigin="anonymous" />
@@ -41,11 +44,13 @@
         {
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
-          "name": "Fire Weather Tools",
+          "name": "Fire Dashboard",
           "url": "https://clintonalden.com/firetools.html",
           "applicationCategory": "WeatherApplication",
           "operatingSystem": "Web",
-          "description": "An interactive map of VIIRS and MODIS fire detections, active incidents, fuel-moisture data, and HRRR smoke forecasts.",
+          "description": "An interactive wildfire and smoke map with FIRMS satellite detections, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions.",
+          "featureList": "FIRMS satellite detections, incident boundaries, AirNow PM2.5, HRRR Smoke, surface wind, Pacific Crest Trail smoke conditions",
+          "isAccessibleForFree": true,
           "offers": {
             "@type": "Offer",
             "price": "0",
@@ -290,7 +295,7 @@
                                 <button id="mobile-layers-toggle" type="button" aria-expanded="false">Layers</button>
                                 <button id="mobile-reset-view" type="button">Reset</button>
                                 <button id="mobile-clear-overlays" type="button">Clear</button>
-                                <button id="mobile-incidents-toggle" type="button" aria-expanded="false">Incidents</button>
+                                <button id="mobile-incidents-toggle" type="button" aria-controls="fire-results">Incidents</button>
                             </div>
                             <div id="fire-map" class="fire-map"></div>
                         </div>
