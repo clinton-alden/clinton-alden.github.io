@@ -58,12 +58,6 @@ jobs:
           path: assets/live/evacuations.json
           key: evacuations-${{ github.run_id }}
           restore-keys: evacuations-
-      - name: Restore last PCTA closure retrievals
-        uses: actions/cache/restore@v4
-        with:
-          path: assets/live/pct-closures.json
-          key: pct-closures-${{ github.run_id }}
-          restore-keys: pct-closures-
       - name: Restore last HRRR smoke run
         uses: actions/cache/restore@v4
         with:
@@ -73,8 +67,6 @@ jobs:
       - name: Refresh all non-smoke fire data
         if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         run: node scripts/fetch-live-data.mjs
-      - name: Refresh PCTA closure locations
-        run: python3 scripts/fetch-pct-closures.py
       - name: Refresh FIRMS, incidents, and fire perimeters
         if: github.event_name == 'schedule' && github.event.schedule == '7 * * * *'
         run: node scripts/fetch-live-data.mjs --skip-fuel-moisture
@@ -107,11 +99,6 @@ jobs:
         with:
           path: assets/live/evacuations.json
           key: evacuations-${{ github.run_id }}
-      - name: Save PCTA closure retrievals
-        uses: actions/cache/save@v4
-        with:
-          path: assets/live/pct-closures.json
-          key: pct-closures-${{ github.run_id }}
       - uses: actions/setup-python@v5
         if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         with:

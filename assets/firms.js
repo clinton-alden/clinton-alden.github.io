@@ -954,14 +954,27 @@ async function loadPctClosures() {
   }
   setPctClosuresStatus('Loading PCTA closure locations...');
   try {
-    const response = window.__PCT_CLOSURES__ ? null : await fetch(liveDataUrl('assets/live/pct-closures.json'), { cache: 'force-cache' });
-    if (response && !response.ok) throw new Error('PCTA closure locations are not available yet.');
-    state.pctClosures = window.__PCT_CLOSURES__ || await response.json();
+    const response = await fetch(liveDataUrl('assets/live/pct-closures.json'), { cache: 'force-cache' });
+    if (!response.ok) throw new Error('Live PCTA closure locations are not available.');
+    const liveData = await response.json();
+    if (!Array.isArray(liveData.rows) || liveData.rows.length === 0) throw new Error('Live PCTA closure locations are empty.');
+    state.pctClosures = liveData;
     const count = state.pctClosures.rows?.length || 0;
     setPctClosuresStatus(`${count.toLocaleString()} PCTA closure and alert location${count === 1 ? '' : 's'}${state.pctClosures.stale ? ' (refresh delayed)' : ''}.`);
     renderPctClosures();
   } catch (error) {
-    setPctClosuresStatus(error.message || 'Unable to load PCTA closure locations.', true);
+    try {
+      const response = await fetch('assets/pct-closures.json', { cache: 'force-cache' });
+      if (!response.ok) throw new Error('Saved PCTA closure snapshot is unavailable.');
+      const snapshot = await response.json();
+      if (!Array.isArray(snapshot.rows) || snapshot.rows.length === 0) throw new Error('Saved PCTA closure snapshot is empty.');
+      state.pctClosures = { ...snapshot, snapshot: true, stale: true };
+      const count = snapshot.rows.length;
+      setPctClosuresStatus(`${count.toLocaleString()} saved PCTA closure and alert location${count === 1 ? '' : 's'} (live refresh unavailable).`);
+      renderPctClosures();
+    } catch (snapshotError) {
+      setPctClosuresStatus(snapshotError.message || error.message || 'Unable to load PCTA closure locations.', true);
+    }
   }
 }
 
@@ -1042,7 +1055,9 @@ function offsetCoordinate(latitude, longitude, eastMeters, northMeters) {
 }
 
 function pctClosurePopupHtml(closure) {
-  const retrievedAt = state.pctClosures?.generatedAt ? `Retrieved ${formatDateTime(state.pctClosures.generatedAt)}` : 'Retrieval time unavailable';
+  const retrievedAt = state.pctClosures?.generatedAt
+    ? `${state.pctClosures.snapshot ? 'Saved snapshot from' : 'Retrieved'} ${formatDateTime(state.pctClosures.generatedAt)}`
+    : 'Retrieval time unavailable';
   const corridor = closure.geometry?.lines?.features?.length ? 'Mapped closure corridor includes a 10-mile buffer on either side of PCTA linework.' : 'Official PCTA closure and alert location.';
   return `<div class="fire-popup"><strong>${escapeHtml(closure.name || 'PCT closure or alert')}</strong><span>${escapeHtml(retrievedAt)}</span><span>${escapeHtml(corridor)}</span><a href="${escapeHtml(closure.url || 'https://closures.pcta.org/')}" target="_blank" rel="noopener">View on PCTA Closures</a></div>`;
 }
