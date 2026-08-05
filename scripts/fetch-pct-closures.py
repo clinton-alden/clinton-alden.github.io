@@ -19,7 +19,7 @@ def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
     try:
         cached_rows = {row.get("id"): row for row in (read_payload() or {}).get("rows", [])}
-        locations = extract_map_data(load_page(OVERVIEW_URL, 8000))
+        locations = extract_map_data(load_page(OVERVIEW_URL, 15000))
         rows = [
             {
                 "id": location["id"],
@@ -59,8 +59,7 @@ def main():
             write_payload(cached)
             print(f"PCTA closure refresh failed; retaining {len(cached['rows'])} cached locations: {error}")
         else:
-            write_payload({"generatedAt": timestamp(), "lastAttemptAt": timestamp(), "stale": True, "rows": []})
-            print(f"PCTA closure refresh failed with no cached locations: {error}")
+            raise RuntimeError(f"PCTA closure refresh failed with no cached locations: {error}")
 
 
 def load_page(url, virtual_time):
@@ -77,7 +76,7 @@ def load_page(url, virtual_time):
         check=True,
         capture_output=True,
         text=True,
-        timeout=45 if virtual_time >= 8000 else 20,
+        timeout=90 if virtual_time >= 8000 else 30,
     )
     if not result.stdout.strip():
         raise RuntimeError("PCTA page returned no content")
