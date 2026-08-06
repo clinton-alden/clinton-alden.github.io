@@ -20,9 +20,10 @@ OUTPUT = ROOT / "assets" / "live" / "hrrr-smoke"
 NOMADS = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl"
 WEST = {"west": -125.0, "east": -102.0, "south": 31.0, "north": 50.0}
 RESOLUTION = 0.05
+WIND_RESOLUTION = 0.03
 HOURS = range(49)
 MAX_RUN_AGE_HOURS = 24
-WIND_STRIDE = 30
+WIND_MAX_SPEED = 60.0
 PCT_MARKERS_URL = "https://services5.arcgis.com/ZldHa25efPFpMmfB/arcgis/rest/services/PCT_Mile_Markers_2026/FeatureServer/0/query"
 FIELDS = {
     "surface": {
@@ -68,10 +69,11 @@ def main() -> None:
         shutil.rmtree(OUTPUT)
     for name in FIELDS:
         (OUTPUT / name).mkdir(parents=True)
+    (OUTPUT / "winds").mkdir(parents=True)
 
     run = find_latest_completed_run()
     regrid = Regridder()
-    wind_frames = []
+    wind_regrid = Regridder(WIND_RESOLUTION)
     try:
         pct_miles = fetch_pct_miles()
     except Exception as error:
@@ -87,9 +89,9 @@ def main() -> None:
                 sample_pct_smoke(pct_miles, regular, regrid)
         u_values, latitudes, longitudes = fields["UGRD"]
         v_values, _, _ = fields["VGRD"]
-        u_regular = regrid.to_regular(u_values, latitudes, longitudes)
-        v_regular = regrid.to_regular(v_values, latitudes, longitudes)
-        wind_frames.append({"hour": hour, "vectors": wind_vectors(regrid, u_regular, v_regular)})
+        u_regular = wind_regrid.to_regular(u_values, latitudes, longitudes)
+        v_regular = wind_regrid.to_regular(v_values, latitudes, longitudes)
+        render_wind_grid(u_regular, v_regular, OUTPUT / "winds" / f"f{hour:03d}.webp")
 
     manifest = {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -98,6 +100,11 @@ def main() -> None:
         "bounds": [[WEST["south"], WEST["west"]], [WEST["north"], WEST["east"]]],
         "resolutionDegrees": RESOLUTION,
         "hours": list(HOURS),
+        "wind": {
+            "path": "winds/f{hour}.webp",
+            "resolutionDegrees": WIND_RESOLUTION,
+            "velocityRange": WIND_MAX_SPEED,
+        },
         "fields": {
             name: {
                 "label": config["label"],
@@ -109,7 +116,6 @@ def main() -> None:
             for name, config in FIELDS.items()
         },
     }
-    winds = {"run": manifest["run"], "frames": wind_frames}
     pct_smoke = {
         "run": manifest["run"],
         "units": FIELDS["surface"]["units"],
@@ -119,7 +125,6 @@ def main() -> None:
         "miles": pct_miles,
     }
     write_data("manifest", manifest, "__HRRR_SMOKE_MANIFEST__")
-    write_data("winds", winds, "__HRRR_SMOKE_WINDS__")
     write_data("pct-smoke", pct_smoke, "__HRRR_PCT_SMOKE__")
 
 
@@ -263,21 +268,10 @@ def read_fields(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray, np.ndarra
     return selected
 
 
-def wind_vectors(regrid: "Regridder", u_values: np.ndarray, v_values: np.ndarray) -> list[list[float]]:
-    vectors = []
-    for lat_index in range(0, len(regrid.target_lats), WIND_STRIDE):
-        for lon_index in range(0, len(regrid.target_lons), WIND_STRIDE):
-            u = float(u_values[lat_index, lon_index])
-            v = float(v_values[lat_index, lon_index])
-            if np.isfinite(u) and np.isfinite(v):
-                vectors.append([round(float(regrid.target_lats[lat_index]), 3), round(float(regrid.target_lons[lon_index]), 3), round(u, 2), round(v, 2)])
-    return vectors
-
-
 class Regridder:
-    def __init__(self) -> None:
-        self.target_lats = np.arange(WEST["south"], WEST["north"] + RESOLUTION / 2, RESOLUTION, dtype=np.float32)
-        self.target_lons = np.arange(WEST["west"], WEST["east"] + RESOLUTION / 2, RESOLUTION, dtype=np.float32)
+    def __init__(self, resolution: float = RESOLUTION) -> None:
+        self.target_lats = np.arange(WEST["south"], WEST["north"] + resolution / 2, resolution, dtype=np.float32)
+        self.target_lons = np.arange(WEST["west"], WEST["east"] + resolution / 2, resolution, dtype=np.float32)
         lon_grid, lat_grid = np.meshgrid(self.target_lons, self.target_lats)
         self.target_points = np.column_stack((lat_grid.ravel(), lon_grid.ravel()))
         self.indices: np.ndarray | None = None
@@ -297,6 +291,17 @@ def render_overlay(values: np.ndarray, breaks: list[float], display_min: float, 
     visible = finite & (image_values >= display_min)
     rgba[visible] = colors[np.clip(categories[visible], 0, len(colors) - 1)]
     Image.fromarray(rgba, mode="RGBA").save(output, "WEBP", lossless=True, method=6)
+
+
+def render_wind_grid(u_values: np.ndarray, v_values: np.ndarray, output: Path) -> None:
+    """Store u/v in an image so the browser can fetch one 3 km forecast hour at a time."""
+    u_values = u_values[::-1]
+    v_values = v_values[::-1]
+    valid = np.isfinite(u_values) & np.isfinite(v_values)
+    encoded_u = np.clip(np.rint((np.nan_to_num(u_values) + WIND_MAX_SPEED) * 255 / (2 * WIND_MAX_SPEED)), 0, 255).astype(np.uint8)
+    encoded_v = np.clip(np.rint((np.nan_to_num(v_values) + WIND_MAX_SPEED) * 255 / (2 * WIND_MAX_SPEED)), 0, 255).astype(np.uint8)
+    rgb = np.dstack((encoded_u, encoded_v, np.where(valid, 255, 0).astype(np.uint8)))
+    Image.fromarray(rgb, mode="RGB").save(output, "WEBP", lossless=True, method=6)
 
 
 if __name__ == "__main__":

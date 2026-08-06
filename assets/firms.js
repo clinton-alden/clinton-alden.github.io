@@ -26,7 +26,8 @@ const state = {
   smokeOverlay: null,
   smokeWindLayer: null,
   smokeManifest: null,
-  smokeWinds: null,
+  smokeWindFrame: null,
+  smokeWindRequest: 0,
   smokePlayback: null,
   smokeFrameRequest: 0,
   smokeTimeElement: null,
@@ -287,8 +288,12 @@ function initMap() {
   state.map.on('moveend', () => {
     updateBoundsLabel();
     syncUrlState();
+    renderSmokeWinds(Number(els.smokeHour.value));
   });
-  state.map.on('zoomend', rerenderFireMarkersForZoom);
+  state.map.on('zoomend', () => {
+    rerenderFireMarkersForZoom();
+    renderSmokeWinds(Number(els.smokeHour.value));
+  });
 }
 
 async function loadIncidents() {
@@ -805,15 +810,13 @@ async function syncSmokeLayer() {
       if (response && !response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
       state.smokeManifest = window.__HRRR_SMOKE_MANIFEST__ || await response.json();
       if (state.smokeManifest.available === false) throw new Error(state.smokeManifest.message || 'HRRR Smoke is not available yet.');
-      const windsResponse = window.__HRRR_SMOKE_WINDS__ ? null : await fetch(liveDataUrl('assets/live/hrrr-smoke/winds.json'), { cache: 'force-cache' });
-      state.smokeWinds = window.__HRRR_SMOKE_WINDS__ || (windsResponse?.ok ? await windsResponse.json() : null);
       const lastHour = Math.max(...(state.smokeManifest.hours || [48]));
       els.smokeHour.max = String(lastHour);
       els.smokeHour.disabled = false;
       els.smokeField.disabled = false;
       els.smokeOpacity.disabled = false;
       els.smokePlay.disabled = false;
-      els.showSmokeWind.disabled = !state.smokeWinds;
+      els.showSmokeWind.disabled = !state.smokeManifest.wind;
       setSmokeStatus(`Loaded ${state.smokeManifest.model || 'HRRR Smoke'} run: ${formatSmokeTimes(state.smokeManifest.run)}.`);
     } catch (error) {
       els.showSmoke.checked = false;
@@ -822,7 +825,7 @@ async function syncSmokeLayer() {
       return;
     }
   }
-  els.showSmokeWind.disabled = !state.smokeWinds;
+  els.showSmokeWind.disabled = !state.smokeManifest.wind;
   renderSmokeOverlay();
 }
 
@@ -1123,22 +1126,96 @@ function setPctSmokeStatus(message, isError = false) {
 
 function renderSmokeWinds(hour) {
   state.smokeWindLayer.clearLayers();
-  if (!els.showSmoke.checked || !els.showSmokeWind.checked || !state.smokeWinds) return;
-  const frame = (state.smokeWinds.frames || []).find(item => Number(item.hour) === hour);
-  (frame?.vectors || []).forEach(([latitude, longitude, u, v]) => drawWindArrow(latitude, longitude, u, v));
+  if (!els.showSmoke.checked || !els.showSmokeWind.checked || !state.smokeManifest?.wind) return;
+  if (state.smokeWindFrame?.hour === hour) {
+    drawWindFrame(state.smokeWindFrame);
+    return;
+  }
+  loadSmokeWindFrame(hour);
+}
+
+async function loadSmokeWindFrame(hour) {
+  const requestId = ++state.smokeWindRequest;
+  const wind = state.smokeManifest?.wind;
+  if (!wind) return;
+  const hourToken = String(hour).padStart(3, '0');
+  const imageUrl = `assets/live/hrrr-smoke/${wind.path.replace('{hour}', hourToken)}`;
+  try {
+    const image = await loadImage(imageUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    if (requestId !== state.smokeWindRequest || !els.showSmoke.checked || !els.showSmokeWind.checked) return;
+    state.smokeWindFrame = { hour, width: canvas.width, height: canvas.height, pixels };
+    drawWindFrame(state.smokeWindFrame);
+  } catch (error) {
+    if (requestId === state.smokeWindRequest) console.warn('HRRR Smoke wind frame was unavailable.', error);
+  }
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Unable to load ${url}`));
+    image.src = url;
+  });
+}
+
+function drawWindFrame(frame) {
+  const wind = state.smokeManifest?.wind;
+  if (!wind || !state.map) return;
+  const [[south, west], [north, east]] = state.smokeManifest.bounds;
+  const resolution = Number(wind.resolutionDegrees);
+  const range = Number(wind.velocityRange) || 60;
+  if (!Number.isFinite(resolution) || resolution <= 0) return;
+  const visible = state.map.getBounds().pad(0.04);
+  const mapWest = Math.max(west, visible.getWest());
+  const mapEast = Math.min(east, visible.getEast());
+  const mapSouth = Math.max(south, visible.getSouth());
+  const mapNorth = Math.min(north, visible.getNorth());
+  if (mapWest > mapEast || mapSouth > mapNorth) return;
+  const center = state.map.getCenter();
+  const centerPoint = state.map.latLngToContainerPoint(center);
+  const eastPoint = state.map.latLngToContainerPoint([center.lat, center.lng + resolution]);
+  const northPoint = state.map.latLngToContainerPoint([center.lat + resolution, center.lng]);
+  const baseSpacing = Math.max(1, Math.min(Math.abs(eastPoint.x - centerPoint.x), Math.abs(northPoint.y - centerPoint.y)));
+  const targetSpacing = isMobileViewport() ? 44 : 38;
+  const stride = Math.max(1, Math.ceil(targetSpacing / baseSpacing));
+  const startX = Math.max(0, Math.floor((mapWest - west) / resolution / stride) * stride);
+  const endX = Math.min(frame.width - 1, Math.ceil((mapEast - west) / resolution));
+  const startY = Math.max(0, Math.floor((north - mapNorth) / resolution / stride) * stride);
+  const endY = Math.min(frame.height - 1, Math.ceil((north - mapSouth) / resolution));
+  for (let y = startY; y <= endY; y += stride) {
+    for (let x = startX; x <= endX; x += stride) {
+      const pixel = (y * frame.width + x) * 4;
+      if (frame.pixels[pixel + 2] === 0) continue;
+      const u = frame.pixels[pixel] / 255 * 2 * range - range;
+      const v = frame.pixels[pixel + 1] / 255 * 2 * range - range;
+      drawWindArrow(north - y * resolution, west + x * resolution, u, v);
+    }
+  }
 }
 
 function drawWindArrow(latitude, longitude, u, v) {
   const speed = Math.hypot(u, v);
   if (!Number.isFinite(speed) || speed < 0.5) return;
-  const scale = Math.min(0.38, 0.08 + speed * 0.018);
-  const latScale = v * scale / speed;
-  const lonScale = u * scale / (speed * Math.max(Math.cos(latitude * Math.PI / 180), 0.3));
-  const tail = [latitude - latScale / 2, longitude - lonScale / 2];
-  const head = [latitude + latScale / 2, longitude + lonScale / 2];
+  const center = state.map.latLngToContainerPoint([latitude, longitude]);
+  const length = clamp(9 + speed * 0.65, 10, 24);
+  const latScale = -v / speed * length;
+  const lonScale = u / speed * length;
+  const tailPoint = center.subtract([lonScale / 2, latScale / 2]);
+  const headPoint = center.add([lonScale / 2, latScale / 2]);
   const wingScale = 0.34;
-  const left = [head[0] - latScale * wingScale - lonScale * wingScale, head[1] - lonScale * wingScale + latScale * wingScale];
-  const right = [head[0] - latScale * wingScale + lonScale * wingScale, head[1] - lonScale * wingScale - latScale * wingScale];
+  const leftPoint = headPoint.add([-lonScale * wingScale - latScale * wingScale, -latScale * wingScale + lonScale * wingScale]);
+  const rightPoint = headPoint.add([lonScale * wingScale - latScale * wingScale, latScale * wingScale + lonScale * wingScale]);
+  const tail = state.map.containerPointToLatLng(tailPoint);
+  const head = state.map.containerPointToLatLng(headPoint);
+  const left = state.map.containerPointToLatLng(leftPoint);
+  const right = state.map.containerPointToLatLng(rightPoint);
   const options = { pane: 'windPane', color: '#f8fafc', weight: 1.4, opacity: 0.82, interactive: false };
   L.polyline([tail, head], options).addTo(state.smokeWindLayer);
   L.polyline([left, head, right], options).addTo(state.smokeWindLayer);

@@ -14,7 +14,6 @@ PAYLOADS = {
     "pct-closures.json": "__PCT_CLOSURES__",
     "fuel-moisture.json": "__FIRE_FUEL_MOISTURE__",
     "hrrr-smoke/manifest.json": "__HRRR_SMOKE_MANIFEST__",
-    "hrrr-smoke/winds.json": "__HRRR_SMOKE_WINDS__",
     "hrrr-smoke/pct-smoke.json": "__HRRR_PCT_SMOKE__",
 }
 
