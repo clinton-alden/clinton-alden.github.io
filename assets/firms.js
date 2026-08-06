@@ -232,13 +232,13 @@ function initMap() {
   state.map.createPane('boundariesPane');
   state.map.getPane('boundariesPane').style.zIndex = 365;
   state.map.createPane('firePane');
-  state.map.getPane('firePane').style.zIndex = 410;
+  state.map.getPane('firePane').style.zIndex = 435;
   state.map.createPane('evacuationPane');
   state.map.getPane('evacuationPane').style.zIndex = 405;
   state.map.createPane('pctPane');
-  state.map.getPane('pctPane').style.zIndex = 415;
+  state.map.getPane('pctPane').style.zIndex = 438;
   state.map.createPane('pctClosurePane');
-  state.map.getPane('pctClosurePane').style.zIndex = 425;
+  state.map.getPane('pctClosurePane').style.zIndex = 440;
   state.map.createPane('pm25Pane');
   state.map.getPane('pm25Pane').style.zIndex = 420;
   state.map.createPane('windPane');
@@ -940,6 +940,10 @@ function renderPctSmoke() {
         bubblingMouseEvents: false
       });
       line.bindPopup(pctSmokePopupHtml(start, value, hour, maximum), { maxWidth: 260 });
+      line.on('click', event => {
+        if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
+        line.openPopup(event.latlng);
+      });
       line.addTo(state.pctSmokeLayer);
     }
     if (index < samples.length - 1) window.requestAnimationFrame(addBatch);
@@ -988,35 +992,53 @@ function renderPctClosures() {
     const latitude = Number(closure.latitude);
     const longitude = Number(closure.longitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-    renderPctClosureGeometry(closure.geometry);
-    L.circleMarker([latitude, longitude], {
+    renderPctClosureGeometry(closure.geometry, closure);
+    const marker = L.circleMarker([latitude, longitude], {
       pane: 'pctClosurePane',
-      radius: 8,
+      radius: 9,
       color: '#fff7ed',
       weight: 2,
       fillColor: '#dc2626',
       fillOpacity: 0.95
-    }).bindPopup(pctClosurePopupHtml(closure), { maxWidth: 280 }).addTo(state.pctClosureLayer);
+    });
+    bindPctClosurePopup(marker, closure);
+    marker.addTo(state.pctClosureLayer).bringToFront();
   });
   renderActiveLayers();
 }
 
-function renderPctClosureGeometry(geometry) {
+function bindPctClosurePopup(layer, closure) {
+  layer.bindPopup(pctClosurePopupHtml(closure), { maxWidth: 280 });
+  layer.on('click', event => {
+    if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
+    layer.openPopup();
+  });
+}
+
+function renderPctClosureGeometry(geometry, closure) {
   if (!geometry) return;
-  const polygonStyle = { pane: 'pctClosurePane', color: '#dc2626', weight: 1.5, fillColor: '#dc2626', fillOpacity: 0.2, interactive: false };
+  const polygonStyle = { pane: 'pctClosurePane', color: '#dc2626', weight: 1.5, fillColor: '#dc2626', fillOpacity: 0.2 };
   (geometry.polygons?.features || []).forEach(feature => {
-    L.geoJSON(feature, { style: polygonStyle, interactive: false }).addTo(state.pctClosureLayer);
+    const polygon = L.geoJSON(feature, { style: polygonStyle });
+    bindPctClosurePopup(polygon, closure);
+    polygon.addTo(state.pctClosureLayer);
   });
   (geometry.lines?.features || []).forEach(feature => {
     const lines = closureLineCoordinates(feature.geometry);
     lines.forEach(coordinates => {
       const corridor = closureCorridorCoordinates(coordinates, 16093.4);
-      if (corridor.length) L.polygon(corridor, {
-        pane: 'pctClosurePane', stroke: false, fillColor: '#dc2626', fillOpacity: 0.14, interactive: false
-      }).addTo(state.pctClosureLayer);
-      L.polyline(coordinates.map(([longitude, latitude]) => [latitude, longitude]), {
-        pane: 'pctClosurePane', color: '#b91c1c', weight: 3, opacity: 0.9, interactive: false
-      }).addTo(state.pctClosureLayer);
+      if (corridor.length) {
+        const corridorLayer = L.polygon(corridor, {
+          pane: 'pctClosurePane', stroke: false, fillColor: '#dc2626', fillOpacity: 0.14
+        });
+        bindPctClosurePopup(corridorLayer, closure);
+        corridorLayer.addTo(state.pctClosureLayer);
+      }
+      const line = L.polyline(coordinates.map(([longitude, latitude]) => [latitude, longitude]), {
+        pane: 'pctClosurePane', color: '#b91c1c', weight: 3, opacity: 0.9
+      });
+      bindPctClosurePopup(line, closure);
+      line.addTo(state.pctClosureLayer);
     });
   });
 }
@@ -1510,9 +1532,14 @@ function renderMarkers() {
         color: row.daynight === 'N' ? '#f8fafc' : '#3b1d0a',
         weight: 1,
         fillColor: recencyColor(row.acquiredAtMs),
-        fillOpacity: 0.68
+        fillOpacity: 0.68,
+        interactive: true
       });
       marker.bindPopup(popupHtml(row));
+      marker.on('click', event => {
+        if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
+        marker.openPopup();
+      });
       marker.addTo(state.layer);
     }
     if (index < rows.length) window.requestAnimationFrame(addBatch);
