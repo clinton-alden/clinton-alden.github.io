@@ -555,6 +555,20 @@ a:hover { text-decoration: underline; }
   font-size: 12px;
   font-weight: 600;
 }
+.layer-health {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #64748b;
+  vertical-align: 1px;
+}
+.layer-health.is-current { background: #22c55e; }
+.layer-health.is-delayed { background: #facc15; }
+.layer-health.is-stale { background: #ef4444; }
+.data-health-summary { color: #facc15; font-size: 10px; font-weight: 500; }
+.data-health-summary.is-stale { color: #f87171; }
 .fire-options { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
 .fire-options summary { cursor: pointer; color: var(--accent); }
 .fire-options[open] summary { margin-bottom: 4px; }

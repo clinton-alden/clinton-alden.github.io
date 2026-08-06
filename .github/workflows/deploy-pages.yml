@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: Restore last FIRMS retrievals
         uses: actions/cache/restore@v4
         with:
@@ -115,6 +115,8 @@ jobs:
         with:
           path: assets/live/hrrr-smoke
           key: hrrr-smoke-${{ github.run_id }}
+      - name: Write data refresh heartbeat
+        run: node scripts/write-data-health.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -93,12 +93,12 @@
                 <div class="fire-shell">
                     <aside class="fire-controls card reveal">
                         <div class="fire-controls-heading">
-                            <h2 id="fire-controls-title">Data Layers</h2>
+                            <h2 id="fire-controls-title">Data Layers <span id="data-health-summary" class="data-health-summary" hidden role="status"></span></h2>
                             <button id="mobile-layers-close" class="mobile-close-button" type="button" aria-label="Close data layers">&times;</button>
                         </div>
 
                         <fieldset class="fire-fieldset fire-satellite-section">
-                            <legend>Satellite Retrievals</legend>
+                            <legend>Satellite Retrievals <span id="satellite-health" class="layer-health" role="img" aria-label="Satellite data status"></span></legend>
                             <label class="checkbox-label"><input id="show-fire-data" type="checkbox" checked /><span>Show satellite detections</span></label>
                             <details class="fire-options"><summary>Satellite retrieval options</summary>
                             <label class="checkbox-label">
@@ -129,10 +129,11 @@
                         </fieldset>
 
                         <fieldset class="fire-fieldset fire-incidents-section">
-                            <legend>Incidents</legend>
+                            <legend>Incidents <span id="incidents-health" class="layer-health" role="img" aria-label="Incident data status"></span></legend>
                             <label class="checkbox-label"><input id="show-incidents" type="checkbox" checked /><span>Show current incidents</span></label>
                             <details class="fire-options">
                                 <summary>Incident options</summary>
+                            <label class="checkbox-label"><input id="incident-recent" type="checkbox" checked /><span>Recent fires</span></label>
                             <label for="incident-filter">Display</label>
                             <select id="incident-filter">
                                 <option value="all">All fires</option>
@@ -144,7 +145,7 @@
                         </fieldset>
 
                         <fieldset class="fire-fieldset fire-evacuations-section">
-                            <legend>Evacuations</legend>
+                            <legend>Evacuations <span id="evacuations-health" class="layer-health" role="img" aria-label="Evacuation data status"></span></legend>
                             <label class="checkbox-label"><input id="show-evacuations" type="checkbox" checked /><span>Show official evacuation areas</span></label>
                             <p id="evacuations-status" class="fire-status" aria-live="polite">Loading official evacuation areas...</p>
                         </fieldset>
@@ -171,7 +172,7 @@
                         </fieldset>
 
                         <fieldset class="fire-fieldset fire-air-section">
-                            <legend>Air Quality</legend>
+                            <legend>Air Quality <span id="air-health" class="layer-health" role="img" aria-label="Air quality data status"></span></legend>
                             <label class="checkbox-label">
                                 <input id="show-pm25" type="checkbox" />
                                 <span>Show AirNow PM2.5 monitors</span>
@@ -188,7 +189,7 @@
                         </fieldset>
 
                         <fieldset class="fire-fieldset fire-smoke-section">
-                            <legend>HRRR Smoke</legend>
+                            <legend>HRRR Smoke <span id="smoke-health" class="layer-health" role="img" aria-label="Smoke forecast data status"></span></legend>
                             <label class="checkbox-label">
                                 <input id="show-smoke" type="checkbox" checked />
                                 <span>Show forecast smoke</span>
@@ -265,6 +266,11 @@
                                 <input id="fire-date" type="date" />
                             </div>
                         </div>
+
+                        <label class="checkbox-label">
+                            <input id="fire-since-local-midnight" type="checkbox" />
+                            <span>Only detections since selected map time zone midnight</span>
+                        </label>
 
                         <label for="fire-min-frp">Min FRP (MW)</label>
                         <input id="fire-min-frp" type="range" min="0" max="500" step="5" value="5" />

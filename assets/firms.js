@@ -10,6 +10,13 @@ const PM25_BREAKS = [0, 9, 35, 55, 125, 250];
 const PM25_COLORS = ['#22c55e', '#facc15', '#f97316', '#ef4444', '#a855f7', '#7e22ce'];
 const OREGON_EVACUATIONS_URL = 'https://services.arcgis.com/uUvqNMGPm7axC2dD/arcgis/rest/services/Fire_Evacuation_Areas_Public/FeatureServer/0/query';
 const CALIFORNIA_EVACUATIONS_URL = 'https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query';
+const DATA_HEALTH = {
+  satellite: { label: 'Satellite', warningHours: 2, staleHours: 6 },
+  incidents: { label: 'Incidents', warningHours: 2, staleHours: 6 },
+  evacuations: { label: 'Evacuations', warningHours: 2, staleHours: 6 },
+  air: { label: 'Air quality', warningHours: 2, staleHours: 6 },
+  smoke: { label: 'HRRR Smoke', warningHours: 9, staleHours: 24 }
+};
 
 const state = {
   map: null,
@@ -33,6 +40,7 @@ const state = {
   smokeTimeElement: null,
   smokeScaleElement: null,
   smokeTimeZone: 'America/Los_Angeles',
+  dataHealth: null,
   incidentData: null,
   evacuationData: null,
   filteredIncidents: [],
@@ -108,6 +116,9 @@ function startFireDashboard() {
   state.urlSyncReady = true;
   syncUrlState();
   initializeLiveLayers(initialFireData);
+  loadDataHealth();
+  window.setInterval(loadDataHealth, 10 * 60 * 1000);
+  window.setInterval(renderDataHealth, 60 * 1000);
   window.setInterval(() => {
     loadIncidents();
     loadEvacuations();
@@ -131,6 +142,59 @@ async function initializeLiveLayers(initialFireData) {
   }
 }
 
+async function loadDataHealth() {
+  try {
+    const response = await fetch(liveDataUrl('assets/live/data-health.json'), { cache: 'no-store' });
+    if (!response.ok) throw new Error('Data health is unavailable.');
+    state.dataHealth = await response.json();
+    renderDataHealth();
+  } catch (error) {
+    console.info('Data refresh heartbeat is unavailable.', error);
+  }
+}
+
+function renderDataHealth() {
+  if (!state.dataHealth) return;
+  const heartbeatAge = ageHours(state.dataHealth.generatedAt);
+  const heartbeatState = heartbeatAge >= 6 ? 'stale' : heartbeatAge >= 2 ? 'delayed' : 'current';
+  const sourceStates = Object.entries(DATA_HEALTH).map(([key, config]) => {
+    const source = state.dataHealth.sources?.[key];
+    const stateName = sourceHealthState(source, config, heartbeatState);
+    updateLayerHealth(key, stateName, source, config);
+    return stateName;
+  });
+  const overall = sourceStates.includes('stale') ? 'stale' : sourceStates.includes('delayed') ? 'delayed' : 'current';
+  if (!els.dataHealthSummary) return;
+  els.dataHealthSummary.hidden = overall === 'current';
+  els.dataHealthSummary.classList.toggle('is-stale', overall === 'stale');
+  els.dataHealthSummary.textContent = overall === 'stale' ? 'Data updates unavailable' : 'Data update delayed';
+  els.dataHealthSummary.title = `Last successful data refresh ${formatDateTime(state.dataHealth.generatedAt)}.`;
+}
+
+function sourceHealthState(source, config, heartbeatState) {
+  if (!source?.available || source.stale || !source.timestamp) return 'stale';
+  const age = ageHours(source.timestamp);
+  if (!Number.isFinite(age) || age >= config.staleHours || heartbeatState === 'stale') return 'stale';
+  if (age >= config.warningHours || heartbeatState === 'delayed') return 'delayed';
+  return 'current';
+}
+
+function updateLayerHealth(key, stateName, source, config) {
+  const element = els[`${key}Health`];
+  if (!element) return;
+  element.classList.remove('is-current', 'is-delayed', 'is-stale');
+  element.classList.add(`is-${stateName}`);
+  const timestamp = source?.timestamp ? formatDateTime(source.timestamp) : 'unavailable';
+  const description = stateName === 'current' ? 'current' : stateName === 'delayed' ? 'update delayed' : 'stale or unavailable';
+  element.title = `${config.label}: ${description}. Data timestamp: ${timestamp}.`;
+  element.setAttribute('aria-label', `${config.label} data ${description}; timestamp ${timestamp}`);
+}
+
+function ageHours(timestamp) {
+  const time = Date.parse(timestamp || '');
+  return Number.isFinite(time) ? (Date.now() - time) / 3_600_000 : NaN;
+}
+
 window.addEventListener('load', () => {
   if (state.initialized && els.showSmoke?.checked) syncSmokeLayer();
 });
@@ -141,6 +205,7 @@ function cacheElements() {
     'fire-date',
     'fire-min-frp',
     'fire-min-frp-label',
+    'fire-since-local-midnight',
     'fire-reset-view',
     'load-fire-data',
     'download-fire-csv',
@@ -148,6 +213,12 @@ function cacheElements() {
     'fire-bounds-label',
     'fire-count',
     'fire-updated',
+    'data-health-summary',
+    'satellite-health',
+    'incidents-health',
+    'evacuations-health',
+    'air-health',
+    'smoke-health',
     'show-fire-data',
     'show-fuel-moisture',
     'show-pm25',
@@ -157,6 +228,7 @@ function cacheElements() {
     'evacuations-status',
     'evacuations-legend',
     'incident-filter',
+    'incident-recent',
     'incident-state',
     'incident-summary',
     'incident-list',
@@ -485,7 +557,23 @@ function incidentMatches(feature) {
   const properties = feature.properties || {};
   const majorOnly = els.incidentFilter.value === 'major';
   const stateFilter = els.incidentState.value;
-  return (!majorOnly || incidentAcres(properties) >= 1000) && (!stateFilter || properties.POOState === stateFilter);
+  return (!majorOnly || incidentAcres(properties) >= 1000)
+    && (!stateFilter || properties.POOState === stateFilter)
+    && (!els.incidentRecent.checked || isRecentIncident(properties));
+}
+
+function isRecentIncident(properties) {
+  const containment = Number(properties.PercentContained ?? properties.PercentPerimeterToBeContained);
+  if (Number.isFinite(containment) && containment >= 100) return false;
+  const updatedAt = incidentUpdatedAtMs(properties);
+  return Number.isFinite(updatedAt) && updatedAt >= Date.now() - 14 * 24 * 60 * 60 * 1000;
+}
+
+function incidentUpdatedAtMs(properties) {
+  const value = properties.ModifiedOnDateTime || properties.DateCurrent || properties.ICS209ReportDateTime;
+  if (typeof value === 'number') return value;
+  const timestamp = Date.parse(value || '');
+  return Number.isFinite(timestamp) ? timestamp : NaN;
 }
 
 function perimeterNameKey(name) {
@@ -555,6 +643,7 @@ function initControls() {
     els.fireMinFrpLabel.textContent = `${els.fireMinFrp.value} MW`;
     renderRows();
   });
+  els.fireSinceLocalMidnight.addEventListener('change', renderRows);
 
   els.loadFireData.addEventListener('click', () => loadFireData());
   els.downloadFireCsv.addEventListener('click', downloadCsv);
@@ -579,6 +668,9 @@ function initControls() {
     if (state.evacuationData) renderEvacuations(state.evacuationData);
   });
   els.incidentFilter.addEventListener('change', () => {
+    if (state.incidentData) renderIncidents(state.incidentData);
+  });
+  els.incidentRecent.addEventListener('change', () => {
     if (state.incidentData) renderIncidents(state.incidentData);
   });
   els.incidentState.addEventListener('change', () => {
@@ -621,6 +713,7 @@ function initControls() {
   els.smokeTimezone.addEventListener('change', () => {
     state.smokeTimeZone = els.smokeTimezone.value;
     renderSmokeOverlay();
+    renderRows();
   });
   els.smokeUseDeviceTime.addEventListener('click', useDeviceSmokeTimeZone);
   els.smokeOpacity.addEventListener('input', updateSmokeOpacity);
@@ -649,6 +742,7 @@ function applyUrlState() {
   els.showPctClosures.checked = layers.has('pctclosures');
 
   setSelectFromUrl(els.incidentFilter, params.get('incidents'));
+  els.incidentRecent.checked = params.get('recent') !== '0';
   state.pendingIncidentState = params.get('state') || '';
   setSelectFromUrl(els.fuelMoistureClass, params.get('fuel'));
   setSelectFromUrl(els.pm25Mode, params.get('air'));
@@ -661,6 +755,7 @@ function applyUrlState() {
   setInputFromUrl(els.fireDate, params.get('date'), /^\d{4}-\d{2}-\d{2}$/);
   setInputFromUrl(els.fuelMoistureDate, params.get('fuelDate'), /^\d{4}-\d{2}-\d{2}$/);
   setNumericInputFromUrl(els.fireMinFrp, params.get('frp'));
+  els.fireSinceLocalMidnight.checked = params.get('localDay') === '1';
   setNumericInputFromUrl(els.smokeHour, params.get('hour'));
   setNumericInputFromUrl(els.smokeOpacity, params.get('opacity'));
   els.fireMinFrpLabel.textContent = `${els.fireMinFrp.value} MW`;
@@ -710,7 +805,9 @@ function syncUrlState() {
   params.set('days', els.fireDayRange.value);
   if (els.fireDate.value) params.set('date', els.fireDate.value);
   params.set('frp', els.fireMinFrp.value);
+  if (els.fireSinceLocalMidnight.checked) params.set('localDay', '1');
   params.set('incidents', els.incidentFilter.value);
+  if (!els.incidentRecent.checked) params.set('recent', '0');
   const incidentState = els.incidentState.value || state.pendingIncidentState;
   if (incidentState) params.set('state', incidentState);
   params.set('fuel', els.fuelMoistureClass.value);
@@ -749,7 +846,7 @@ function renderActiveLayers() {
   const container = document.getElementById('fire-active-layers');
   if (!container) return;
   const layers = [
-    [els.showFireData.checked, 'Satellite'], [els.showIncidents.checked, els.incidentFilter.value === 'major' ? 'Major fires' : 'Incidents'],
+    [els.showFireData.checked, els.fireSinceLocalMidnight.checked ? 'Satellite since midnight' : 'Satellite'], [els.showIncidents.checked, els.incidentRecent.checked ? 'Recent fires' : (els.incidentFilter.value === 'major' ? 'Major fires' : 'Incidents')],
     [els.showEvacuations.checked, 'Evacuations'],
     [els.showFuelMoisture.checked, 'Fuel'], [els.showPm25.checked, els.pm25Mode.value === 'aqi' ? 'PM2.5 AQI' : 'PM2.5'],
     [els.showSmoke.checked, `Smoke F${String(els.smokeHour.value).padStart(3, '0')}`], [els.showSmoke.checked && els.showSmokeWind.checked, 'Wind'],
@@ -788,6 +885,7 @@ function useDeviceSmokeTimeZone() {
     els.smokeTimezone.value = zone;
     state.smokeTimeZone = zone;
     renderSmokeOverlay();
+    renderRows();
     syncUrlState();
   };
   if (navigator.geolocation) navigator.geolocation.getCurrentPosition(setZone, setZone, { timeout: 8000, maximumAge: 86_400_000 });
@@ -1581,9 +1679,32 @@ function normalizeRow(row, source) {
 
 function renderRows() {
   const minFrp = Number(els.fireMinFrp.value);
-  state.visibleRows = state.allRows.filter(row => row.frp >= minFrp);
+  const minimumTime = mapMidnightMs();
+  state.visibleRows = state.allRows.filter(row => row.frp >= minFrp
+    && (!els.fireSinceLocalMidnight.checked || row.acquiredAtMs >= minimumTime));
   renderMarkers();
   renderSummary(minFrp);
+}
+
+function mapMidnightMs() {
+  const timeZone = els.smokeTimezone?.value || 'America/Los_Angeles';
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(now)
+    .filter(part => part.type !== 'literal')
+    .map(part => [part.type, part.value]));
+  const utcMidnight = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+  const localTimeAsUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+  return utcMidnight - (localTimeAsUtc - now.getTime());
 }
 
 function renderMarkers() {
