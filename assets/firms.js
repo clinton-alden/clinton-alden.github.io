@@ -1204,19 +1204,19 @@ function drawWindArrow(latitude, longitude, u, v) {
   const speed = Math.hypot(u, v);
   if (!Number.isFinite(speed) || speed < 0.5) return;
   const center = state.map.latLngToContainerPoint([latitude, longitude]);
-  const length = clamp(9 + speed * 0.65, 10, 24);
-  const latScale = -v / speed * length;
-  const lonScale = u / speed * length;
-  const tailPoint = center.subtract([lonScale / 2, latScale / 2]);
-  const headPoint = center.add([lonScale / 2, latScale / 2]);
-  const wingScale = 0.34;
-  const leftPoint = headPoint.add([-lonScale * wingScale - latScale * wingScale, -latScale * wingScale + lonScale * wingScale]);
-  const rightPoint = headPoint.add([lonScale * wingScale - latScale * wingScale, latScale * wingScale + lonScale * wingScale]);
+  const length = clamp(16 + speed * 0.95, 20, 44);
+  const vertical = -v / speed * length;
+  const horizontal = u / speed * length;
+  const tailPoint = center.subtract([horizontal / 2, vertical / 2]);
+  const headPoint = center.add([horizontal / 2, vertical / 2]);
+  const wing = 0.3;
+  const leftPoint = headPoint.add([-horizontal * wing - vertical * wing, -vertical * wing + horizontal * wing]);
+  const rightPoint = headPoint.add([-horizontal * wing + vertical * wing, -vertical * wing - horizontal * wing]);
   const tail = state.map.containerPointToLatLng(tailPoint);
   const head = state.map.containerPointToLatLng(headPoint);
   const left = state.map.containerPointToLatLng(leftPoint);
   const right = state.map.containerPointToLatLng(rightPoint);
-  const options = { pane: 'windPane', color: '#f8fafc', weight: 1.4, opacity: 0.82, interactive: false };
+  const options = { pane: 'windPane', color: '#f8fafc', weight: 1.5, opacity: 0.84, interactive: false };
   L.polyline([tail, head], options).addTo(state.smokeWindLayer);
   L.polyline([left, head, right], options).addTo(state.smokeWindLayer);
 }
