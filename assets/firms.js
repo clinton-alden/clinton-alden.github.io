@@ -37,6 +37,11 @@ const state = {
   smokeWindRequest: 0,
   smokePlayback: null,
   smokeFrameRequest: 0,
+  smokeFrameCache: new Map(),
+  smokePreloadField: '',
+  smokePreloadQueue: [],
+  smokePreloadScheduled: false,
+  smokePreloadGeneration: 0,
   smokeTimeElement: null,
   smokeScaleElement: null,
   smokeTimeZone: 'America/Los_Angeles',
@@ -161,13 +166,17 @@ function renderDataHealth() {
     const source = state.dataHealth.sources?.[key];
     const stateName = sourceHealthState(source, config, heartbeatState);
     updateLayerHealth(key, stateName, source, config);
-    return stateName;
+    return { key, stateName };
   });
-  const overall = sourceStates.includes('stale') ? 'stale' : sourceStates.includes('delayed') ? 'delayed' : 'current';
+  const staleSources = sourceStates.filter(source => source.stateName === 'stale');
+  const delayedSources = sourceStates.filter(source => source.stateName === 'delayed');
+  const overall = staleSources.length ? 'stale' : delayedSources.length ? 'delayed' : 'current';
   if (!els.dataHealthSummary) return;
   els.dataHealthSummary.hidden = overall === 'current';
   els.dataHealthSummary.classList.toggle('is-stale', overall === 'stale');
-  els.dataHealthSummary.textContent = overall === 'stale' ? 'Data updates unavailable' : 'Data update delayed';
+  els.dataHealthSummary.textContent = staleSources.length === Object.keys(DATA_HEALTH).length ? 'Data updates unavailable'
+    : staleSources.length === 1 ? `${DATA_HEALTH[staleSources[0].key].label} update delayed`
+      : staleSources.length > 1 ? 'Some data updates unavailable' : 'Data update delayed';
   els.dataHealthSummary.title = `Last successful data refresh ${formatDateTime(state.dataHealth.generatedAt)}.`;
 }
 
@@ -313,7 +322,7 @@ function initMap() {
   state.map.createPane('pctClosurePane');
   state.map.getPane('pctClosurePane').style.zIndex = 440;
   state.map.createPane('pm25Pane');
-  state.map.getPane('pm25Pane').style.zIndex = 420;
+  state.map.getPane('pm25Pane').style.zIndex = 437;
   state.map.createPane('windPane');
   state.map.getPane('windPane').style.zIndex = 430;
   L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
@@ -938,8 +947,9 @@ function renderSmokeOverlay() {
   const imagePath = field.path.replace('{hour}', hourToken);
   const imageUrl = `assets/live/hrrr-smoke/${imagePath}`;
   const requestId = ++state.smokeFrameRequest;
-  const image = new Image();
-  image.onload = () => {
+  prepareSmokeFrameCache(fieldName, field, hour);
+  preloadSmokeFrame(imageUrl).ready.then(image => {
+    if (!image) return;
     if (requestId !== state.smokeFrameRequest || !els.showSmoke.checked) return;
     const nextOverlay = L.imageOverlay(imageUrl, state.smokeManifest.bounds, {
       opacity: Number(els.smokeOpacity.value) / 100,
@@ -949,8 +959,7 @@ function renderSmokeOverlay() {
     const previousOverlay = state.smokeOverlay;
     state.smokeOverlay = nextOverlay;
     if (previousOverlay) previousOverlay.remove();
-  };
-  image.src = imageUrl;
+  });
   renderSmokeScale(field);
   const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
   els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatSmokeTimes(validTime)} | ${field.label} (${field.units})`;
@@ -964,6 +973,74 @@ function renderSmokeOverlay() {
   renderSmokeWinds(hour);
   renderPctSmoke();
   syncUrlState();
+}
+
+function prepareSmokeFrameCache(fieldName, field, activeHour) {
+  if (state.smokePreloadField !== fieldName) {
+    state.smokeFrameCache.clear();
+    state.smokePreloadField = fieldName;
+    state.smokePreloadQueue = [];
+    state.smokePreloadScheduled = false;
+    state.smokePreloadGeneration += 1;
+  }
+  if (state.smokePreloadQueue.length) {
+    scheduleSmokePreload(state.smokePreloadGeneration);
+    return;
+  }
+  if (state.smokePreloadScheduled) return;
+  const hours = state.smokeManifest.hours || [];
+  const orderedHours = [...hours].sort((first, second) => Math.abs(first - activeHour) - Math.abs(second - activeHour));
+  const urls = orderedHours.map(frameHour => {
+    const token = String(frameHour).padStart(3, '0');
+    return `assets/live/hrrr-smoke/${field.path.replace('{hour}', token)}`;
+  });
+  urls.slice(0, 7).forEach(preloadSmokeFrame);
+  state.smokePreloadQueue = urls.slice(7);
+  scheduleSmokePreload(state.smokePreloadGeneration);
+}
+
+function preloadSmokeFrame(url) {
+  const cached = state.smokeFrameCache.get(url);
+  if (cached) return cached;
+  const image = new Image();
+  const entry = {
+    image,
+    ready: new Promise(resolve => {
+      image.onload = () => resolve(image);
+      image.onerror = () => {
+        state.smokeFrameCache.delete(url);
+        resolve(null);
+      };
+    })
+  };
+  state.smokeFrameCache.set(url, entry);
+  image.src = url;
+  return entry;
+}
+
+function scheduleSmokePreload(generation) {
+  if (state.smokePreloadScheduled || !state.smokePreloadQueue.length) return;
+  state.smokePreloadScheduled = true;
+  const preloadNext = deadline => {
+    if (generation !== state.smokePreloadGeneration || !els.showSmoke.checked) {
+      state.smokePreloadScheduled = false;
+      return;
+    }
+    let loaded = 0;
+    while (state.smokePreloadQueue.length && (deadline?.timeRemaining?.() > 6 || loaded < 2)) {
+      preloadSmokeFrame(state.smokePreloadQueue.shift());
+      loaded += 1;
+      if (loaded >= 3) break;
+    }
+    if (state.smokePreloadQueue.length) {
+      if (window.requestIdleCallback) window.requestIdleCallback(preloadNext, { timeout: 1200 });
+      else window.setTimeout(() => preloadNext(null), 120);
+    } else {
+      state.smokePreloadScheduled = false;
+    }
+  };
+  if (window.requestIdleCallback) window.requestIdleCallback(preloadNext, { timeout: 1200 });
+  else window.setTimeout(() => preloadNext(null), 120);
 }
 
 function clearSmokeOverlay() {
@@ -1867,9 +1944,14 @@ function renderPm25Markers() {
       color: '#f8fafc',
       weight: 1.25,
       fillColor: aqiMode ? aqiColor(value) : pm25Color(value),
-      fillOpacity: 0.92
+      fillOpacity: 0.92,
+      interactive: true
     });
     marker.bindPopup(pm25PopupHtml(row));
+    marker.on('click', event => {
+      if (event.originalEvent) L.DomEvent.stopPropagation(event.originalEvent);
+      marker.openPopup();
+    });
     marker.addTo(state.pm25Layer);
   });
   renderActiveLayers();
