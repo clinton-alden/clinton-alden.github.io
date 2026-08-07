@@ -569,6 +569,20 @@ a:hover { text-decoration: underline; }
 .layer-health.is-stale { background: #ef4444; }
 .data-health-summary { color: #facc15; font-size: 10px; font-weight: 500; }
 .data-health-summary.is-stale { color: #f87171; }
+.pct-closure-alert-icon {
+  display: grid;
+  width: 22px !important;
+  height: 22px !important;
+  place-items: center;
+  box-sizing: border-box;
+  border: 2px solid #050505;
+  border-radius: 0;
+  color: #ffffff;
+  background: #dc2626;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  font: 800 17px/1 Arial, sans-serif;
+}
+.pct-closure-alert-icon span { transform: translateY(-1px); }
 .fire-options { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
 .fire-options summary { cursor: pointer; color: var(--accent); }
 .fire-options[open] summary { margin-bottom: 4px; }

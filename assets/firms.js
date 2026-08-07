@@ -1094,16 +1094,17 @@ function renderPctClosures() {
     const longitude = Number(closure.longitude);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
     renderPctClosureGeometry(closure.geometry, closure);
-    const marker = L.circleMarker([latitude, longitude], {
+    const marker = L.marker([latitude, longitude], {
       pane: 'pctClosurePane',
-      radius: 9,
-      color: '#fff7ed',
-      weight: 2,
-      fillColor: '#dc2626',
-      fillOpacity: 0.95
+      icon: L.divIcon({
+        className: 'pct-closure-alert-icon',
+        html: '<span aria-hidden="true">!</span>',
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+      })
     });
     bindPctClosurePopup(marker, closure);
-    marker.addTo(state.pctClosureLayer).bringToFront();
+    marker.addTo(state.pctClosureLayer);
   });
   renderActiveLayers();
 }
