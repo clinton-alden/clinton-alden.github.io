@@ -913,7 +913,7 @@ async function syncSmokeLayer() {
   if (!state.smokeManifest) {
     setSmokeStatus('Loading latest HRRR Smoke forecast...');
     try {
-      const response = window.__HRRR_SMOKE_MANIFEST__ ? null : await fetch(liveDataUrl('assets/live/hrrr-smoke/manifest.json'), { cache: 'force-cache' });
+      const response = window.__HRRR_SMOKE_MANIFEST__ ? null : await fetch(liveDataUrl('assets/live/hrrr-smoke/manifest.json'), { cache: 'no-store' });
       if (response && !response.ok) throw new Error('HRRR Smoke frames have not been published yet.');
       state.smokeManifest = window.__HRRR_SMOKE_MANIFEST__ || await response.json();
       if (state.smokeManifest.available === false) throw new Error(state.smokeManifest.message || 'HRRR Smoke is not available yet.');
@@ -945,7 +945,7 @@ function renderSmokeOverlay() {
   const hour = Number(els.smokeHour.value);
   const hourToken = String(hour).padStart(3, '0');
   const imagePath = field.path.replace('{hour}', hourToken);
-  const imageUrl = `assets/live/hrrr-smoke/${imagePath}`;
+  const imageUrl = smokeAssetUrl(imagePath);
   const requestId = ++state.smokeFrameRequest;
   prepareSmokeFrameCache(fieldName, field, hour);
   preloadSmokeFrame(imageUrl).ready.then(image => {
@@ -975,6 +975,12 @@ function renderSmokeOverlay() {
   syncUrlState();
 }
 
+function smokeAssetUrl(path) {
+  const version = state.smokeManifest?.generatedAt || state.smokeManifest?.run;
+  const suffix = version ? `?v=${encodeURIComponent(version)}` : '';
+  return `assets/live/hrrr-smoke/${path}${suffix}`;
+}
+
 function prepareSmokeFrameCache(fieldName, field, activeHour) {
   if (state.smokePreloadField !== fieldName) {
     state.smokeFrameCache.clear();
@@ -992,7 +998,7 @@ function prepareSmokeFrameCache(fieldName, field, activeHour) {
   const orderedHours = [...hours].sort((first, second) => Math.abs(first - activeHour) - Math.abs(second - activeHour));
   const urls = orderedHours.map(frameHour => {
     const token = String(frameHour).padStart(3, '0');
-    return `assets/live/hrrr-smoke/${field.path.replace('{hour}', token)}`;
+    return smokeAssetUrl(field.path.replace('{hour}', token));
   });
   urls.slice(0, 7).forEach(preloadSmokeFrame);
   state.smokePreloadQueue = urls.slice(7);
@@ -1315,7 +1321,7 @@ async function loadSmokeWindFrame(hour) {
   const wind = state.smokeManifest?.wind;
   if (!wind) return;
   const hourToken = String(hour).padStart(3, '0');
-  const imageUrl = `assets/live/hrrr-smoke/${wind.path.replace('{hour}', hourToken)}`;
+  const imageUrl = smokeAssetUrl(wind.path.replace('{hour}', hourToken));
   try {
     const image = await loadImage(imageUrl);
     const canvas = document.createElement('canvas');

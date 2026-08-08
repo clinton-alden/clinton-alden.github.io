@@ -73,6 +73,7 @@ def main() -> None:
 
     run = find_latest_completed_run()
     regrid = Regridder()
+    overlay_regrid = WebMercatorOverlayRegridder()
     wind_regrid = Regridder(WIND_RESOLUTION)
     try:
         pct_miles = fetch_pct_miles()
@@ -84,7 +85,8 @@ def main() -> None:
         for name, config in FIELDS.items():
             values, latitudes, longitudes = fields[config["parameter"]]
             regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
-            render_overlay(regular, config["breaks"], config["display_min"], config["rgba"], OUTPUT / name / f"f{hour:03d}.webp")
+            overlay_values = overlay_regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
+            render_overlay(overlay_values, config["breaks"], config["display_min"], config["rgba"], OUTPUT / name / f"f{hour:03d}.webp")
             if name == "surface":
                 sample_pct_smoke(pct_miles, regular, regrid)
         u_values, latitudes, longitudes = fields["UGRD"]
@@ -99,6 +101,7 @@ def main() -> None:
         "run": run.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "bounds": [[WEST["south"], WEST["west"]], [WEST["north"], WEST["east"]]],
         "resolutionDegrees": RESOLUTION,
+        "rasterProjection": "EPSG:3857",
         "hours": list(HOURS),
         "wind": {
             "path": "winds/f{hour}.webp",
@@ -283,12 +286,41 @@ class Regridder:
         return values[self.indices].reshape(len(self.target_lats), len(self.target_lons))
 
 
+class WebMercatorOverlayRegridder:
+    """Sample at Web Mercator image-pixel centers for Leaflet ImageOverlay."""
+
+    def __init__(self, resolution: float = RESOLUTION) -> None:
+        width = round((WEST["east"] - WEST["west"]) / resolution)
+        height = round((WEST["north"] - WEST["south"]) / resolution)
+        self.target_lons = WEST["west"] + (np.arange(width, dtype=np.float32) + 0.5) * (WEST["east"] - WEST["west"]) / width
+        north_y = web_mercator_y(WEST["north"])
+        south_y = web_mercator_y(WEST["south"])
+        target_y = north_y + (np.arange(height, dtype=np.float32) + 0.5) * (south_y - north_y) / height
+        self.target_lats = web_mercator_latitude(target_y)
+        lon_grid, lat_grid = np.meshgrid(self.target_lons, self.target_lats)
+        self.target_points = np.column_stack((lat_grid.ravel(), lon_grid.ravel()))
+        self.indices: np.ndarray | None = None
+
+    def to_regular(self, values: np.ndarray, latitudes: np.ndarray, longitudes: np.ndarray) -> np.ndarray:
+        if self.indices is None:
+            tree = cKDTree(np.column_stack((latitudes, longitudes)))
+            self.indices = tree.query(self.target_points, workers=-1)[1]
+        return values[self.indices].reshape(len(self.target_lats), len(self.target_lons))
+
+
+def web_mercator_y(latitude: float | np.ndarray) -> float | np.ndarray:
+    return np.log(np.tan(np.pi / 4 + np.deg2rad(latitude) / 2))
+
+
+def web_mercator_latitude(y: np.ndarray) -> np.ndarray:
+    return np.rad2deg(2 * np.arctan(np.exp(y)) - np.pi / 2)
+
+
 def render_overlay(values: np.ndarray, breaks: list[float], display_min: float, colors: np.ndarray, output: Path) -> None:
-    image_values = values[::-1]
-    rgba = np.zeros((*image_values.shape, 4), dtype=np.uint8)
-    finite = np.isfinite(image_values)
-    categories = np.digitize(np.nan_to_num(image_values, nan=0), breaks, right=False) - 1
-    visible = finite & (image_values >= display_min)
+    rgba = np.zeros((*values.shape, 4), dtype=np.uint8)
+    finite = np.isfinite(values)
+    categories = np.digitize(np.nan_to_num(values, nan=0), breaks, right=False) - 1
+    visible = finite & (values >= display_min)
     rgba[visible] = colors[np.clip(categories[visible], 0, len(colors) - 1)]
     Image.fromarray(rgba, mode="RGBA").save(output, "WEBP", lossless=True, method=6)
 
