@@ -3,20 +3,21 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Radiosonde Skew-T — Clinton Alden</title>
-        <meta name="description" content="CONUS observed radiosonde profiles downloaded in bulk and plotted as interactive MetPy skew-T diagrams." />
+        <title>Radiosonde Skew-T Tool | Clinton Alden Weather Tools</title>
+        <meta name="description" content="Clinton Alden's interactive CONUS radiosonde and Skew-T tool for recent observed atmospheric soundings." />
         <meta name="author" content="Clinton Alden" />
+        <meta name="robots" content="index,follow,max-image-preview:large" />
         <link rel="canonical" href="https://clintonalden.com/radiosonde.html" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Clinton Alden" />
-        <meta property="og:title" content="Radiosonde Skew-T | Clinton Alden" />
-        <meta property="og:description" content="Browse recent CONUS observed soundings and render interactive MetPy skew-T diagrams." />
+        <meta property="og:title" content="Radiosonde Skew-T Tool | Clinton Alden Weather Tools" />
+        <meta property="og:description" content="Browse recent CONUS observed soundings and render interactive MetPy Skew-T diagrams." />
         <meta property="og:url" content="https://clintonalden.com/radiosonde.html" />
         <meta property="og:image" content="https://clintonalden.com/assets/oak-20260731-00z-skewt.png" />
         <meta property="og:image:alt" content="Example Skew-T atmospheric sounding diagram" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Radiosonde Skew-T | Clinton Alden" />
-        <meta name="twitter:description" content="Browse recent CONUS observed soundings and render interactive MetPy skew-T diagrams." />
+        <meta name="twitter:title" content="Radiosonde Skew-T Tool | Clinton Alden Weather Tools" />
+        <meta name="twitter:description" content="Browse recent CONUS observed soundings and render interactive MetPy Skew-T diagrams." />
         <meta name="twitter:image" content="https://clintonalden.com/assets/oak-20260731-00z-skewt.png" />
         <meta name="twitter:image:alt" content="Example Skew-T atmospheric sounding diagram" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +28,13 @@
         <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon.png" />
         <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
         <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CKDM9ZJSHN"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-CKDM9ZJSHN');
+        </script>
         <script defer src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
         <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="assets/radiosonde.js?v=20260730-default-slc" defer></script>
@@ -39,6 +47,11 @@
           "applicationCategory": "WeatherApplication",
           "operatingSystem": "Web",
           "description": "An interactive tool for viewing recent CONUS radiosonde observations as MetPy skew-T diagrams.",
+          "author": {
+            "@type": "Person",
+            "name": "Clinton Alden",
+            "url": "https://clintonalden.com/"
+          },
           "offers": {
             "@type": "Offer",
             "price": "0",

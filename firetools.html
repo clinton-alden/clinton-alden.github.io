@@ -3,14 +3,15 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Wildfire, Smoke, and PCT Map | Clinton Alden</title>
-        <meta name="description" content="Interactive wildfire and smoke map for the western United States, with FIRMS satellite detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <title>Clinton Alden Fire Dashboard | Wildfire, Smoke & PCT Map</title>
+        <meta name="description" content="Clinton Alden's interactive wildfire, smoke, and Pacific Crest Trail map for the western United States, with satellite detections, incidents, evacuations, AirNow PM2.5, and HRRR Smoke." />
         <meta name="author" content="Clinton Alden" />
+        <meta name="robots" content="index,follow,max-image-preview:large" />
         <link rel="canonical" href="https://clintonalden.com/firetools.html" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Clinton Alden" />
-        <meta property="og:title" content="Wildfire, Smoke, and PCT Map | Clinton Alden" />
-        <meta property="og:description" content="Map satellite fire detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <meta property="og:title" content="Clinton Alden Fire Dashboard | Wildfire, Smoke & PCT Map" />
+        <meta property="og:description" content="Interactive wildfire, smoke, evacuation, air-quality, and Pacific Crest Trail conditions map for the western United States." />
         <meta property="og:url" content="https://clintonalden.com/firetools.html" />
         <meta property="og:image" content="https://clintonalden.com/assets/example_firemap.png" />
         <meta property="og:image:type" content="image/png" />
@@ -18,8 +19,8 @@
         <meta property="og:image:width" content="1396" />
         <meta property="og:image:height" content="1092" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wildfire, Smoke, and PCT Map | Clinton Alden" />
-        <meta name="twitter:description" content="Map satellite fire detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions." />
+        <meta name="twitter:title" content="Clinton Alden Fire Dashboard | Wildfire, Smoke & PCT Map" />
+        <meta name="twitter:description" content="Interactive wildfire, smoke, evacuation, air-quality, and Pacific Crest Trail conditions map for the western United States." />
         <meta name="twitter:image" content="https://clintonalden.com/assets/example_firemap.png" />
         <meta name="twitter:image:alt" content="Fire Dashboard showing smoke, wind, Pacific Crest Trail conditions, and active fire incidents across the western United States" />
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,6 +33,13 @@
         <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon.png" />
         <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
         <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CKDM9ZJSHN"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-CKDM9ZJSHN');
+        </script>
         <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="assets/live/firms.data.js"></script>
         <script src="assets/live/incidents.data.js"></script>
@@ -49,6 +57,12 @@
           "applicationCategory": "WeatherApplication",
           "operatingSystem": "Web",
           "description": "An interactive wildfire and smoke map with FIRMS satellite detections, official evacuation areas, active incidents, AirNow PM2.5, HRRR Smoke, and Pacific Crest Trail conditions.",
+          "author": {
+            "@type": "Person",
+            "name": "Clinton Alden",
+            "url": "https://clintonalden.com/"
+          },
+          "keywords": "Clinton Alden fire dashboard, wildfire map, smoke map, HRRR Smoke, Pacific Crest Trail conditions",
           "featureList": "FIRMS satellite detections, official evacuation areas, incident boundaries, AirNow PM2.5, HRRR Smoke, surface wind, Pacific Crest Trail smoke conditions",
           "isAccessibleForFree": true,
           "offers": {
