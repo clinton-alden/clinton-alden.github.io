@@ -8,6 +8,7 @@ const WEST_VIEW = {
 };
 const PM25_BREAKS = [0, 9, 35, 55, 125, 250];
 const PM25_COLORS = ['#22c55e', '#facc15', '#f97316', '#ef4444', '#a855f7', '#7e22ce'];
+const AIRNOW_TIME_ZONE = 'America/Los_Angeles';
 const OREGON_EVACUATIONS_URL = 'https://services.arcgis.com/uUvqNMGPm7axC2dD/arcgis/rest/services/Fire_Evacuation_Areas_Public/FeatureServer/0/query';
 const CALIFORNIA_EVACUATIONS_URL = 'https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0/query';
 const DATA_HEALTH = {
@@ -35,6 +36,8 @@ const state = {
   smokeManifest: null,
   smokeWindFrame: null,
   smokeWindRequest: 0,
+  smokeSampleGrid: null,
+  smokeSampleGridPromise: null,
   smokePlayback: null,
   smokeFrameRequest: 0,
   smokeFrameCache: new Map(),
@@ -236,6 +239,7 @@ function cacheElements() {
     'show-evacuations',
     'evacuations-status',
     'evacuations-legend',
+    'incidents-legend',
     'incident-filter',
     'incident-recent',
     'incident-state',
@@ -272,6 +276,7 @@ function cacheElements() {
     'pct-smoke-mode',
     'pct-smoke-status',
     'pct-closures-status',
+    'pct-closures-legend',
     'fire-disclaimer-gate',
     'fire-disclaimer-agree',
     'fire-disclaimer-continue'
@@ -375,6 +380,7 @@ function initMap() {
     rerenderFireMarkersForZoom();
     renderSmokeWinds(Number(els.smokeHour.value));
   });
+  state.map.on('click', handleSmokeMapClick);
 }
 
 async function loadIncidents() {
@@ -515,6 +521,7 @@ function evacuationPopup(properties = {}) {
 function renderIncidents(data) {
     state.incidentData = data;
     state.incidentLayer.clearLayers();
+    els.incidentsLegend.hidden = !els.showIncidents.checked;
     const renderRequest = ++state.incidentRenderRequest;
     populateIncidentStates(data.incidents.features || []);
     if (state.pendingIncidentState) {
@@ -961,6 +968,7 @@ function renderSmokeOverlay() {
     if (previousOverlay) previousOverlay.remove();
   });
   renderSmokeScale(field);
+  preloadSmokeSampleGrid(hour);
   const validTime = new Date(new Date(state.smokeManifest.run).getTime() + hour * 60 * 60 * 1000);
   els.smokeHourLabel.textContent = `F${hourToken} | valid ${formatSmokeTimes(validTime)} | ${field.label} (${field.units})`;
   if (state.smokeTimeElement) {
@@ -1049,6 +1057,101 @@ function scheduleSmokePreload(generation) {
   else window.setTimeout(() => preloadNext(null), 120);
 }
 
+function preloadSmokeSampleGrid(hour) {
+  if (!state.smokeManifest?.surfaceSampleGrid) return;
+  void loadSmokeSampleGrid(hour).catch(() => null);
+}
+
+async function handleSmokeMapClick(event) {
+  if (!els.showSmoke?.checked || !state.smokeManifest?.surfaceSampleGrid) return;
+  if (event.originalEvent?.target?.closest?.('.leaflet-interactive, .leaflet-marker-icon, .leaflet-popup')) return;
+  const hour = Number(els.smokeHour.value);
+  const popup = L.popup()
+    .setLatLng(event.latlng)
+    .setContent(smokeSampleLoadingHtml(hour))
+    .openOn(state.map);
+  try {
+    const grid = await loadSmokeSampleGrid(hour);
+    const concentration = sampleSmokeGrid(grid, event.latlng);
+    popup.setContent(smokeSamplePopupHtml(event.latlng, concentration, hour));
+  } catch (error) {
+    popup.setContent(smokeSampleErrorHtml(hour));
+  }
+}
+
+async function loadSmokeSampleGrid(hour) {
+  const gridConfig = state.smokeManifest?.surfaceSampleGrid;
+  if (!gridConfig) throw new Error('HRRR Smoke sample grid unavailable.');
+  const hourToken = String(hour).padStart(3, '0');
+  const path = gridConfig.path.replace('{hour}', hourToken);
+  const key = `${state.smokeManifest.run || ''}:${path}`;
+  if (state.smokeSampleGrid?.key === key) return state.smokeSampleGrid;
+  if (state.smokeSampleGridPromise?.key === key) return state.smokeSampleGridPromise.promise;
+  const promise = fetch(smokeAssetUrl(path), { cache: 'force-cache' })
+    .then(response => {
+      if (!response.ok) throw new Error('HRRR Smoke sample grid unavailable.');
+      return response.arrayBuffer();
+    })
+    .then(buffer => {
+      const width = Number(gridConfig.width);
+      const height = Number(gridConfig.height);
+      if (!Number.isFinite(width) || !Number.isFinite(height) || buffer.byteLength < width * height * 2) {
+        throw new Error('HRRR Smoke sample grid was incomplete.');
+      }
+      const grid = {
+        key,
+        hour,
+        width,
+        height,
+        scale: Number(gridConfig.scale) || 0.1,
+        missing: Number(gridConfig.missing) || 65535,
+        units: gridConfig.units || 'ug m-3',
+        view: new DataView(buffer)
+      };
+      state.smokeSampleGrid = grid;
+      return grid;
+    })
+    .finally(() => {
+      if (state.smokeSampleGridPromise?.key === key) state.smokeSampleGridPromise = null;
+    });
+  state.smokeSampleGridPromise = { key, promise };
+  return promise;
+}
+
+function sampleSmokeGrid(grid, latlng) {
+  const [[south, west], [north, east]] = state.smokeManifest.bounds;
+  const longitude = Number(latlng.lng);
+  const latitude = Number(latlng.lat);
+  if (longitude < west || longitude > east || latitude < south || latitude > north) return NaN;
+  const northY = smokeMercatorY(north);
+  const southY = smokeMercatorY(south);
+  const pointY = smokeMercatorY(latitude);
+  const column = Math.floor(((longitude - west) / (east - west)) * grid.width);
+  const row = Math.floor(((northY - pointY) / (northY - southY)) * grid.height);
+  if (row < 0 || row >= grid.height || column < 0 || column >= grid.width) return NaN;
+  const encoded = grid.view.getUint16((row * grid.width + column) * 2, true);
+  return encoded === grid.missing ? NaN : encoded * grid.scale;
+}
+
+function smokeMercatorY(latitude) {
+  const clamped = Math.max(-85, Math.min(85, latitude));
+  return Math.log(Math.tan(Math.PI / 4 + clamped * Math.PI / 360));
+}
+
+function smokeSampleLoadingHtml(hour) {
+  return `<div class="fire-popup"><strong>HRRR Smoke F${String(hour).padStart(3, '0')}</strong><span>Loading modeled PM2.5...</span></div>`;
+}
+
+function smokeSamplePopupHtml(latlng, concentration, hour) {
+  const aqi = pm25Aqi(concentration);
+  const units = state.smokeSampleGrid?.units || 'ug m-3';
+  return `<div class="fire-popup"><strong>HRRR Smoke F${String(hour).padStart(3, '0')}</strong><span>${formatCoordinate(latlng.lat)}, ${formatCoordinate(latlng.lng)}</span><span>Near-surface PM2.5: ${Number.isFinite(concentration) ? `${formatNumber(concentration)} ${escapeHtml(units)}` : 'Unavailable'}</span><span>Estimated PM2.5 AQI: ${Number.isFinite(aqi) ? formatNumber(aqi) : 'Unavailable'}</span><span>Forecast guidance; AQI is calculated from modeled PM2.5.</span></div>`;
+}
+
+function smokeSampleErrorHtml(hour) {
+  return `<div class="fire-popup"><strong>HRRR Smoke F${String(hour).padStart(3, '0')}</strong><span>Modeled PM2.5 values are unavailable for this smoke run.</span></div>`;
+}
+
 function clearSmokeOverlay() {
   state.smokeFrameRequest += 1;
   if (state.smokeOverlay) {
@@ -1058,6 +1161,8 @@ function clearSmokeOverlay() {
   if (state.smokeTimeElement) state.smokeTimeElement.hidden = true;
   if (state.smokeScaleElement) state.smokeScaleElement.hidden = true;
   state.smokeWindLayer.clearLayers();
+  state.smokeSampleGrid = null;
+  state.smokeSampleGridPromise = null;
   els.showSmokeWind.disabled = true;
   if (els.showPctSmoke?.checked && state.pctSmokeData) renderPctSmoke();
   renderMarkers();
@@ -1168,6 +1273,7 @@ async function loadPctClosures() {
 
 function renderPctClosures() {
   state.pctClosureLayer.clearLayers();
+  els.pctClosuresLegend.hidden = !els.showPctClosures?.checked || !state.pctClosures;
   if (!els.showPctClosures?.checked || !state.pctClosures) {
     renderActiveLayers();
     return;
@@ -1919,7 +2025,7 @@ async function loadPm25() {
     if (response && !response.ok) throw new Error('AirNow PM2.5 data unavailable.');
     const data = window.__FIRE_AIRNOW__ || await response.json();
     state.pm25Rows = data.rows || [];
-    const updated = data.observedAt ? `Observed ${formatDateTime(data.observedAt)}` : 'Observation time unavailable';
+    const updated = data.observedAt ? `Observed ${formatPacificDateTime(data.observedAt)}` : 'Observation time unavailable';
     els.pm25Status.textContent = `${state.pm25Rows.length.toLocaleString()} AirNow PM2.5 monitors. ${updated}${data.stale ? ' (refresh delayed)' : ''}`;
     els.pm25Status.classList.toggle('is-error', Boolean(data.stale));
     renderPm25Markers();
@@ -1978,10 +2084,11 @@ function aqiColor(aqi) {
 }
 
 function pm25PopupHtml(row) {
+  const observed = row.observedAt ? `Observed ${formatPacificDateTime(row.observedAt)}` : 'Observation time unavailable';
   return `
     <div class="fire-popup">
       <strong>${escapeHtml(row.siteName || `AirNow ${row.stationId}`)}</strong>
-      <span>${escapeHtml(row.state || 'AirNow')} | ${escapeHtml(row.observedAt || 'Observation time unavailable')}</span>
+      <span>${escapeHtml(row.state || 'AirNow')} | ${escapeHtml(observed)}</span>
       <span>PM2.5: ${formatNumber(row.concentration)} ug/m3</span>
       <span>PM2.5 NowCast AQI: ${Number.isFinite(Number(row.nowcastAqi)) ? formatNumber(row.nowcastAqi) : 'Unavailable'}</span>
       <span>${escapeHtml(row.agency || 'AirNow preliminary observation')}</span>
@@ -2103,6 +2210,19 @@ function formatNumber(value) {
 function formatDateTime(value) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'unknown';
+}
+
+function formatPacificDateTime(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return 'unknown';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+    timeZone: AIRNOW_TIME_ZONE
+  }).format(date);
 }
 
 function formatSmokeTimes(value) {

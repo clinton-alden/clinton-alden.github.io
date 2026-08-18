@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -13,7 +14,9 @@ import numpy as np
 import requests
 from eccodes import codes_get, codes_get_array, codes_grib_new_from_file, codes_release
 from PIL import Image
+from requests.adapters import HTTPAdapter
 from scipy.spatial import cKDTree
+from urllib3.util.retry import Retry
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "assets" / "live" / "hrrr-smoke"
@@ -25,6 +28,16 @@ HOURS = range(49)
 MAX_RUN_AGE_HOURS = 24
 WIND_MAX_SPEED = 60.0
 PCT_MARKERS_URL = "https://services5.arcgis.com/ZldHa25efPFpMmfB/arcgis/rest/services/PCT_Mile_Markers_2026/FeatureServer/0/query"
+SESSION = requests.Session()
+SESSION.headers.update({"User-Agent": "clinton-alden-firetools/1.0"})
+SESSION.mount("https://", HTTPAdapter(max_retries=Retry(
+    total=4,
+    connect=4,
+    read=4,
+    backoff_factor=1.5,
+    status_forcelist=(429, 500, 502, 503, 504),
+    allowed_methods=("GET",),
+)))
 FIELDS = {
     "surface": {
         "parameter": "MASSDEN",
@@ -64,71 +77,108 @@ WIND_PARAMETERS = {
 
 
 def main() -> None:
+    global OUTPUT
+    published_output = OUTPUT
+    build_output = published_output.with_name(f".{published_output.name}-build")
+    previous_output = published_output.with_name(f".{published_output.name}-previous")
+    if build_output.exists():
+        shutil.rmtree(build_output)
+    OUTPUT = build_output
+
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    if OUTPUT.exists():
-        shutil.rmtree(OUTPUT)
     for name in FIELDS:
         (OUTPUT / name).mkdir(parents=True)
+    (OUTPUT / "surface-values").mkdir(parents=True)
     (OUTPUT / "winds").mkdir(parents=True)
 
-    run = find_latest_completed_run()
-    regrid = Regridder()
-    overlay_regrid = WebMercatorOverlayRegridder()
-    wind_regrid = Regridder(WIND_RESOLUTION)
     try:
-        pct_miles = fetch_pct_miles()
-    except Exception as error:
-        print(f"PCT mileage markers were unavailable: {error}", file=sys.stderr)
-        pct_miles = []
-    for hour in HOURS:
-        fields = download_hour(run, hour)
-        for name, config in FIELDS.items():
-            values, latitudes, longitudes = fields[config["parameter"]]
-            regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
-            overlay_values = overlay_regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
-            render_overlay(overlay_values, config["breaks"], config["display_min"], config["rgba"], OUTPUT / name / f"f{hour:03d}.webp")
-            if name == "surface":
-                sample_pct_smoke(pct_miles, regular, regrid)
-        u_values, latitudes, longitudes = fields["UGRD"]
-        v_values, _, _ = fields["VGRD"]
-        u_regular = wind_regrid.to_regular(u_values, latitudes, longitudes)
-        v_regular = wind_regrid.to_regular(v_values, latitudes, longitudes)
-        render_wind_grid(u_regular, v_regular, OUTPUT / "winds" / f"f{hour:03d}.webp")
+        run = find_latest_completed_run()
+        regrid = Regridder()
+        overlay_regrid = WebMercatorOverlayRegridder()
+        wind_regrid = Regridder(WIND_RESOLUTION)
+        try:
+            pct_miles = fetch_pct_miles()
+        except Exception as error:
+            print(f"PCT mileage markers were unavailable: {error}", file=sys.stderr)
+            pct_miles = []
+        for hour in HOURS:
+            fields = download_hour(run, hour)
+            for name, config in FIELDS.items():
+                values, latitudes, longitudes = fields[config["parameter"]]
+                regular = regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
+                overlay_values = overlay_regrid.to_regular(values * config["unit_scale"], latitudes, longitudes)
+                render_overlay(overlay_values, config["breaks"], config["display_min"], config["rgba"], OUTPUT / name / f"f{hour:03d}.webp")
+                if name == "surface":
+                    write_pm25_grid(overlay_values, OUTPUT / "surface-values" / f"f{hour:03d}.bin")
+                    sample_pct_smoke(pct_miles, regular, regrid)
+            u_values, latitudes, longitudes = fields["UGRD"]
+            v_values, _, _ = fields["VGRD"]
+            u_regular = wind_regrid.to_regular(u_values, latitudes, longitudes)
+            v_regular = wind_regrid.to_regular(v_values, latitudes, longitudes)
+            render_wind_grid(u_regular, v_regular, OUTPUT / "winds" / f"f{hour:03d}.webp")
 
-    manifest = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "model": "NOAA HRRR Smoke",
-        "run": run.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "bounds": [[WEST["south"], WEST["west"]], [WEST["north"], WEST["east"]]],
-        "resolutionDegrees": RESOLUTION,
-        "rasterProjection": "EPSG:3857",
-        "hours": list(HOURS),
-        "wind": {
-            "path": "winds/f{hour}.webp",
-            "resolutionDegrees": WIND_RESOLUTION,
-            "velocityRange": WIND_MAX_SPEED,
-        },
-        "fields": {
-            name: {
-                "label": config["label"],
-                "units": config["units"],
-                "breaks": config["breaks"],
-                "colors": config["colors"],
-                "path": f"{name}/f{{hour}}.webp",
-            }
-            for name, config in FIELDS.items()
-        },
-    }
-    pct_smoke = {
-        "run": manifest["run"],
-        "units": FIELDS["surface"]["units"],
-        "breaks": FIELDS["surface"]["breaks"],
-        "colors": FIELDS["surface"]["colors"],
-        "source": "Pacific Crest Trail Association mileage markers, CC BY 4.0",
-        "miles": pct_miles,
-    }
-    write_data("manifest", manifest, "__HRRR_SMOKE_MANIFEST__")
-    write_data("pct-smoke", pct_smoke, "__HRRR_PCT_SMOKE__")
+        manifest = {
+            "generatedAt": datetime.now(timezone.utc).isoformat(),
+            "model": "NOAA HRRR Smoke",
+            "run": run.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "bounds": [[WEST["south"], WEST["west"]], [WEST["north"], WEST["east"]]],
+            "resolutionDegrees": RESOLUTION,
+            "rasterProjection": "EPSG:3857",
+            "hours": list(HOURS),
+            "wind": {
+                "path": "winds/f{hour}.webp",
+                "resolutionDegrees": WIND_RESOLUTION,
+                "velocityRange": WIND_MAX_SPEED,
+            },
+            "surfaceSampleGrid": {
+                "path": "surface-values/f{hour}.bin",
+                "width": overlay_regrid.width,
+                "height": overlay_regrid.height,
+                "scale": 0.1,
+                "missing": 65535,
+                "units": FIELDS["surface"]["units"],
+            },
+            "fields": {
+                name: {
+                    "label": config["label"],
+                    "units": config["units"],
+                    "breaks": config["breaks"],
+                    "colors": config["colors"],
+                    "path": f"{name}/f{{hour}}.webp",
+                }
+                for name, config in FIELDS.items()
+            },
+        }
+        pct_smoke = {
+            "run": manifest["run"],
+            "units": FIELDS["surface"]["units"],
+            "breaks": FIELDS["surface"]["breaks"],
+            "colors": FIELDS["surface"]["colors"],
+            "source": "Pacific Crest Trail Association mileage markers, CC BY 4.0",
+            "miles": pct_miles,
+        }
+        write_data("manifest", manifest, "__HRRR_SMOKE_MANIFEST__")
+        write_data("pct-smoke", pct_smoke, "__HRRR_PCT_SMOKE__")
+        replace_output(build_output, published_output, previous_output)
+    finally:
+        OUTPUT = published_output
+        if build_output.exists():
+            shutil.rmtree(build_output)
+
+
+def replace_output(build_output: Path, published_output: Path, previous_output: Path) -> None:
+    if previous_output.exists():
+        shutil.rmtree(previous_output)
+    try:
+        if published_output.exists():
+            published_output.rename(previous_output)
+        build_output.rename(published_output)
+    except Exception:
+        if not published_output.exists() and previous_output.exists():
+            previous_output.rename(published_output)
+        raise
+    if previous_output.exists():
+        shutil.rmtree(previous_output)
 
 
 def write_data(name: str, value: object, global_name: str) -> None:
@@ -141,7 +191,7 @@ def fetch_pct_miles() -> list[dict[str, float | int | list[float]]]:
     markers = []
     offset = 0
     while True:
-        response = requests.get(PCT_MARKERS_URL, params={
+        response = SESSION.get(PCT_MARKERS_URL, params={
             "where": "1=1",
             "outFields": "Mile,lat,lon",
             "returnGeometry": "true",
@@ -219,7 +269,8 @@ def download_hour(run: datetime, hour: int) -> dict[str, tuple[np.ndarray, np.nd
         "toplat": WEST["north"],
         "bottomlat": WEST["south"],
     }
-    response = requests.get(NOMADS, params=params, timeout=120)
+    response = SESSION.get(NOMADS, params=params, timeout=120)
+    time.sleep(0.35)
     response.raise_for_status()
     if response.content[:4] != b"GRIB":
         raise requests.RequestException(f"HRRR subset unavailable for {run_date} {cycle}Z f{hour:02d}.")
@@ -290,12 +341,12 @@ class WebMercatorOverlayRegridder:
     """Sample at Web Mercator image-pixel centers for Leaflet ImageOverlay."""
 
     def __init__(self, resolution: float = RESOLUTION) -> None:
-        width = round((WEST["east"] - WEST["west"]) / resolution)
-        height = round((WEST["north"] - WEST["south"]) / resolution)
-        self.target_lons = WEST["west"] + (np.arange(width, dtype=np.float32) + 0.5) * (WEST["east"] - WEST["west"]) / width
+        self.width = round((WEST["east"] - WEST["west"]) / resolution)
+        self.height = round((WEST["north"] - WEST["south"]) / resolution)
+        self.target_lons = WEST["west"] + (np.arange(self.width, dtype=np.float32) + 0.5) * (WEST["east"] - WEST["west"]) / self.width
         north_y = web_mercator_y(WEST["north"])
         south_y = web_mercator_y(WEST["south"])
-        target_y = north_y + (np.arange(height, dtype=np.float32) + 0.5) * (south_y - north_y) / height
+        target_y = north_y + (np.arange(self.height, dtype=np.float32) + 0.5) * (south_y - north_y) / self.height
         self.target_lats = web_mercator_latitude(target_y)
         lon_grid, lat_grid = np.meshgrid(self.target_lons, self.target_lats)
         self.target_points = np.column_stack((lat_grid.ravel(), lon_grid.ravel()))
@@ -323,6 +374,13 @@ def render_overlay(values: np.ndarray, breaks: list[float], display_min: float, 
     visible = finite & (values >= display_min)
     rgba[visible] = colors[np.clip(categories[visible], 0, len(colors) - 1)]
     Image.fromarray(rgba, mode="RGBA").save(output, "WEBP", lossless=True, method=6)
+
+
+def write_pm25_grid(values: np.ndarray, output: Path) -> None:
+    encoded = np.full(values.shape, 65535, dtype=np.uint16)
+    valid = np.isfinite(values) & (values >= 0)
+    encoded[valid] = np.clip(np.rint(values[valid] * 10), 0, 65534).astype(np.uint16)
+    encoded.astype("<u2", copy=False).tofile(output)
 
 
 def render_wind_grid(u_values: np.ndarray, v_values: np.ndarray, output: Path) -> None:

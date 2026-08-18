@@ -64,6 +64,12 @@ jobs:
           path: assets/live/hrrr-smoke
           key: hrrr-smoke-${{ github.run_id }}
           restore-keys: hrrr-smoke-
+      - name: Restore last NOAA UV Index run
+        uses: actions/cache/restore@v4
+        with:
+          path: assets/live/uvi
+          key: noaa-uvi-${{ github.run_id }}
+          restore-keys: noaa-uvi-
       - name: Refresh all non-smoke fire data
         if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         run: node scripts/fetch-live-data.mjs
@@ -109,12 +115,21 @@ jobs:
       - name: Refresh HRRR smoke
         if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         run: python scripts/fetch-hrrr-smoke.py
+      - name: Refresh NOAA UV Index
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
+        run: python scripts/fetch-noaa-uvi.py
       - name: Save HRRR smoke run
         if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
         uses: actions/cache/save@v4
         with:
           path: assets/live/hrrr-smoke
           key: hrrr-smoke-${{ github.run_id }}
+      - name: Save NOAA UV Index run
+        if: github.event_name != 'schedule' || github.event.schedule == '20 2,8,14,20 * * *'
+        uses: actions/cache/save@v4
+        with:
+          path: assets/live/uvi
+          key: noaa-uvi-${{ github.run_id }}
       - name: Write data refresh heartbeat
         run: node scripts/write-data-health.mjs
       - uses: actions/configure-pages@v5

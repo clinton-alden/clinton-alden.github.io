@@ -15,6 +15,7 @@ PAYLOADS = {
     "fuel-moisture.json": "__FIRE_FUEL_MOISTURE__",
     "hrrr-smoke/manifest.json": "__HRRR_SMOKE_MANIFEST__",
     "hrrr-smoke/pct-smoke.json": "__HRRR_PCT_SMOKE__",
+    "uvi/manifest.json": "__NOAA_UVI_MANIFEST__",
 }
 
 for relative_path, global_name in PAYLOADS.items():

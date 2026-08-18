@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>UV Index Forecast Map | Clinton Alden Weather Tools</title>
+        <meta name="description" content="Hourly NOAA CPC UV Index forecast map for the current day across the United States." />
+        <meta name="author" content="Clinton Alden" />
+        <meta name="robots" content="index,follow,max-image-preview:large" />
+        <link rel="canonical" href="https://clintonalden.com/uvindex.html" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Clinton Alden" />
+        <meta property="og:title" content="UV Index Forecast Map | Clinton Alden Weather Tools" />
+        <meta property="og:description" content="Browse today's hourly NOAA CPC UV Index forecast fields on an interactive map." />
+        <meta property="og:url" content="https://clintonalden.com/uvindex.html" />
+        <meta property="og:image" content="https://clintonalden.com/assets/weather-map-preview.png" />
+        <meta property="og:image:alt" content="Weather map preview" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="UV Index Forecast Map | Clinton Alden Weather Tools" />
+        <meta name="twitter:description" content="Browse today's hourly NOAA CPC UV Index forecast fields on an interactive map." />
+        <meta name="twitter:image" content="https://clintonalden.com/assets/weather-map-preview.png" />
+        <meta name="twitter:image:alt" content="Weather map preview" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="preload" href="assets/live/uvi/manifest.json" as="fetch" crossorigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <link rel="stylesheet" href="assets/styles.css" />
+        <link rel="icon" type="image/png" sizes="192x192" href="assets/favicon.png" />
+        <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+        <link rel="apple-touch-icon" sizes="192x192" href="assets/favicon.png" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CKDM9ZJSHN"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-CKDM9ZJSHN');
+        </script>
+        <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="assets/live/uvi/manifest.data.js"></script>
+        <script src="assets/uvindex.js" defer></script>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "UV Index Forecast Map",
+          "url": "https://clintonalden.com/uvindex.html",
+          "applicationCategory": "WeatherApplication",
+          "operatingSystem": "Web",
+          "description": "An interactive current-day map of hourly NOAA CPC UV Index forecasts.",
+          "author": {
+            "@type": "Person",
+            "name": "Clinton Alden",
+            "url": "https://clintonalden.com/"
+          },
+          "isAccessibleForFree": true,
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          }
+        }
+        </script>
+    </head>
+    <body class="skip-banner-on-load">
+        <div class="banner">
+            <img src="assets/banner.jpeg" alt="Banner" class="banner-image" />
+        </div>
+        <header class="header">
+            <div class="container nav">
+                <div class="logo">
+                    <a href="index.html" style="display: flex; align-items: center; text-decoration: none;">
+                        <img src="assets/favicon.svg" alt="Snowflake logo" class="logo-icon" />
+                        <span class="brand-name">Clinton Alden Consulting</span>
+                    </a>
+                </div>
+                <nav class="nav-links">
+                    <a href="index.html">About Me</a><a href="cv.html">Consulting</a><a href="adventures.html">Adventures</a><details class="nav-tools active"><summary>Weather Tools</summary><div><a href="radiosonde.html">Radiosonde</a><a href="firetools.html">Fire Map</a><a href="uvindex.html" class="active">UV Index</a></div></details>
+                </nav>
+                <button class="burger" aria-label="Toggle Navigation">Menu</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="section uv-workbench" aria-labelledby="uv-title">
+                <div class="uv-shell">
+                    <aside class="uv-controls card reveal">
+                        <p class="kicker">NOAA CPC Forecast</p>
+                        <h1 id="uv-title">UV Index</h1>
+                        <p class="subtitle">Hourly all-sky UV Index forecast fields for today, including cloud transmission from NOAA's operational product.</p>
+
+                        <label class="checkbox-label">
+                            <input id="show-uvi" type="checkbox" checked />
+                            <span>Show UV Index forecast</span>
+                        </label>
+
+                        <label for="uvi-hour">Forecast hour</label>
+                        <input id="uvi-hour" type="range" min="0" max="0" value="0" disabled />
+                        <div class="uv-time-row">
+                            <button id="uvi-play" class="btn" type="button" disabled>Play</button>
+                            <span id="uvi-hour-label">Loading forecast...</span>
+                        </div>
+
+                        <label for="uvi-opacity">Overlay opacity</label>
+                        <input id="uvi-opacity" type="range" min="20" max="100" value="76" />
+
+                        <label for="uvi-timezone">Time zone</label>
+                        <select id="uvi-timezone">
+                            <option value="America/Los_Angeles" selected>Pacific time</option>
+                            <option value="America/Denver">Mountain time</option>
+                            <option value="America/Chicago">Central time</option>
+                            <option value="America/New_York">Eastern time</option>
+                            <option value="UTC">UTC</option>
+                        </select>
+                        <button id="uvi-use-device-time" class="btn" type="button">Use device time zone</button>
+
+                        <p id="uvi-status" class="uv-status" role="status">Loading NOAA UV Index forecast...</p>
+                    </aside>
+
+                    <section class="uv-map-panel reveal" aria-label="Interactive UV Index forecast map">
+                        <div id="uvi-map" class="uv-map"></div>
+                    </section>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="container">
+                    <div class="data-sources card reveal">
+                        <h2>Data Sources</h2>
+                        <p><strong>UV Index:</strong> NOAA Climate Prediction Center global UV forecast fields, generated from GFS output with TUV radiative transfer. Values are erythemally weighted downwelling UV flux multiplied by 40 to produce UV Index.</p>
+                        <p><strong>Important:</strong> This is automated forecast guidance for informational use. Check local public-health and weather sources for safety decisions.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2026 Clinton Alden. All rights reserved.</p>
+            </div>
+        </footer>
+    </body>
+</html>

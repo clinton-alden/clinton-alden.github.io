@@ -5,7 +5,8 @@ const sources = {
   incidents: 'assets/live/incidents.json',
   evacuations: 'assets/live/evacuations.json',
   air: 'assets/live/airnow-pm25.json',
-  smoke: 'assets/live/hrrr-smoke/manifest.json'
+  smoke: 'assets/live/hrrr-smoke/manifest.json',
+  uvi: 'assets/live/uvi/manifest.json'
 };
 
 async function sourceHealth(file) {

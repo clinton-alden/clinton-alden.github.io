@@ -96,7 +96,7 @@
                     </a>
                 </div>
                 <nav class="nav-links">
-                    <a href="index.html">About Me</a><a href="cv.html">Consulting</a><a href="adventures.html">Adventures</a><details class="nav-tools active"><summary>Weather Tools</summary><div><a href="radiosonde.html">Radiosonde</a><a href="firetools.html" class="active">Fire Map</a></div></details>
+                    <a href="index.html">About Me</a><a href="cv.html">Consulting</a><a href="adventures.html">Adventures</a><details class="nav-tools active"><summary>Weather Tools</summary><div><a href="radiosonde.html">Radiosonde</a><a href="firetools.html" class="active">Fire Map</a><a href="uvindex.html">UV Index</a></div></details>
                 </nav>
                 <button class="burger" aria-label="Toggle Navigation">Menu</button>
             </div>
@@ -316,6 +316,9 @@
                                 <span><i class="fire-today"></i>6-24 h</span>
                                 <span><i class="fire-older"></i>Older</span>
                             </div>
+                            <div id="incidents-legend" class="fire-legend" hidden aria-label="Incident symbol legend">
+                                <span><i class="incident-sample"></i>Incident</span>
+                            </div>
                             <div id="fuel-moisture-legend" class="fire-legend" hidden aria-label="Fuel moisture color legend">
                                 <span><i class="fuel-dry"></i>Dry &lt; 7%</span>
                                 <span><i class="fuel-elevated"></i>7-12%</span>
@@ -334,6 +337,9 @@
                                 <span><i class="evac-set"></i>OR Set / CA Warning</span>
                                 <span><i class="evac-go"></i>OR Go / CA Order</span>
                                 <span><i class="evac-shelter"></i>CA Shelter in place</span>
+                            </div>
+                            <div id="pct-closures-legend" class="fire-legend" hidden aria-label="PCT closure symbol legend">
+                                <span><i class="pct-closure-sample"></i>PCT closure</span>
                             </div>
                         </div>
                         <div class="fire-map-wrap">
